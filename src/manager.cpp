@@ -393,14 +393,16 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
             close(os);
             exit(0);
         }
-        char cmd[32];
+        char cmd[128];
         auto is = open( fifo_symbol,O_RDONLY);
-        read(is, cmd, 32 );
+        read(is, cmd, 128 );
         close(is);
         sscanf(cmd,"%s",cmd);
         unlink(fifo_symbol);
         execv( cmd, (char*const*)&sargs[0] );
     }
+    int st;
+    wait(&st);
     return bfine;
 }
 

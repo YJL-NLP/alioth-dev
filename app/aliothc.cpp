@@ -88,7 +88,7 @@ int argproc( int argc, char **argv, Manager& manager ) {
             cout << " making dir " << base; if(  mkdir( base.data(), 0755 ) ) cout << "\033[1;31mfailed\033[0m"; else cout << "\033[1;32msuccess\033[0m"; cout << endl;
             for( auto sub : {"arc","bin","doc","lib","inc","obj","src"} ) {
                 cout << " making dir " << base << sub; 
-                if( mkdir( (base+"arc").data(), 0755 ) ) 
+                if( mkdir( (base+sub).data(), 0755 ) ) 
                     cout << " \033[1;31mfailed\033[0m"; 
                 else 
                     cout << " \033[1;32msuccess\033[0m"; 

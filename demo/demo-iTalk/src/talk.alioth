@@ -8,6 +8,7 @@ method iTalk::main( argc int32, argv **int8 ) int32 {
     ptr buf = memory.alloc( 1024 );
     var cnt = 0;
 
+    io.nblock();
     io.println("
 ready to go!
     messages received will be displayed automatically while you are not entering somthing;

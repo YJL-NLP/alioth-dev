@@ -232,7 +232,7 @@ method.Socket.recvFrom.R.SockAddr.P0i8.Vi32:
     ret
 
 ; rdi *Socket, rsi *SockAddr, rdx buf, rcx size
-method.Socket.sendToR.SockAddr.P0i8.Vi32:
+method.Socket.sendTo.R.SockAddr.P0i8.Vi32:
     push 0
     push 0
     mov word[rsp], 2 ; 填写sockaddr_in

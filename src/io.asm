@@ -9,6 +9,7 @@ global method.io.println.P0i8
 global method.io.print.P0i8
 global method.io.getline.P0i8.Vi32
 global method.io.block
+global method.io.nblock
 global class.io.entity
 
 [section .bss]
@@ -147,7 +148,7 @@ method.io.print.P0i8:
     ret
 
 method.io.getline.P0i8.Vi32:
-    test dword[rdi], 0xFFFFFFFF
+    test dword[rdi], 0x1
     jnz .G
         call block.disable
         xor rax, rax
@@ -155,10 +156,10 @@ method.io.getline.P0i8.Vi32:
         push rsi
         push rdx
         syscall
-        sub edx, eax
-        add rsi, rax
         pop rdx
         pop rsi
+        sub edx, eax
+        add rsi, rax
         cmp eax, 0
         jle .E
     .G:
@@ -175,4 +176,8 @@ method.io.getline.P0i8.Vi32:
 method.io.block:
     mov dword[rdi], 1
     call block.enable
+    ret
+method.io.nblock:
+    mov dword[rdi], 0
+    call block.disable
     ret

@@ -5,7 +5,7 @@ module iTalk :
     memory
     string
 
-class public $ iTalk {
+class iTalk {
 
     var addr SockAddr
     var brod SockAddr
