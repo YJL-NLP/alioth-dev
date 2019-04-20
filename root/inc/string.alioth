@@ -1,0 +1,6 @@
+module string
+
+class string {
+    method meta from( buf *int8, data uint32, max int32 ) int32
+    method meta toInt32( buf *int8 ) int32
+}

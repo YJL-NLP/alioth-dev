@@ -1,0 +1,8 @@
+obj
+bin
+.vscode/ipch
+*/*.alioth
+**/mtable.json
+deb/*
+! deb/DEBIAN/
+demo/*.zip

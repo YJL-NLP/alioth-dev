@@ -1,0 +1,48 @@
+module iTalk
+
+method iTalk::main( argc int32, argv **int8 ) int32 {
+
+    addr.CreateLocalHost( 31262 );
+    brod.CreateBroadCast( 31262 );
+    peer.Create( addr );
+    ptr buf = memory.alloc( 1024 );
+    var cnt = 0;
+
+    io.println("
+ready to go!
+    messages received will be displayed automatically while you are not entering somthing;
+    Hit return to send message and nothing but what you are editing will be displayed when input buffer is not empty.\n" 
+);
+
+    loop {
+        memory.memset( buf, 0, 1024 );
+        if( peer.recvFrom( addr, buf, 1024 ) > 0 ) {
+            display( buf, addr );
+        }
+
+        if( (cnt = io.getline( buf, 1024 )) > 0 ) {
+            peer.sendTo( brod, buf, cnt );
+        }
+    }
+
+    return 0;
+}
+
+
+method iTalk::display( data *int8, ref addr SockAddr ) nil {
+    ptr ads = memory.alloc( 16 );
+    var adp = 0;
+
+    addr.toReadable( ads, &adp );
+    io.print( "message received from \x1b[1;36m" );
+    io.print( ads );
+    io.print( "\x1b[0m:\x1b[1;32m" );
+    string.from( ads, adp, 16 );
+    io.print( ads );
+    io.print("\x1b[0m\n");
+    io.println( data );
+
+    memory.free( ads );
+
+    return;
+}

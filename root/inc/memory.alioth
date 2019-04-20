@@ -1,0 +1,8 @@
+module memory
+
+class memory {
+    // method init() nil // 此方法被alloc自动调用,不应当暴露
+    method alloc( count int32 ) *int8
+    method free( target *int8 ) bool
+    method memset ( p *int8, v int32, c int32 ) nil
+}

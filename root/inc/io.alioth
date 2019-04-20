@@ -1,0 +1,38 @@
+module io
+
+class io {
+
+    var meta met int32
+
+    /**
+     * @method println : 打印并换行
+     * @desc :
+     *  打印字符串并换行
+     * @param str : 指向字符串数据的指针
+     * @return int32 : 成功打印的字符的个数
+     */
+    method public println( str *int8 ) int32
+
+    /**
+     * @method print : 打印
+     * @desc :
+     *  打印字符串
+     * @param str : 指向字符串数据的指针
+     * @return int32 : 成功打印的字符的个数
+     */
+    method public print( str *int8 ) int32
+
+    /**
+     * @method getline : 获取一行输入
+     * @desc :
+     *  从标准输入流获取一行输入,换行符会被丢弃
+     *  若输入缓冲区内没有数据,则直接返回0
+     *  若输入缓冲区中有数据,但没有换行符,则阻塞等待换行符
+     * @param str : 用于获取输入的缓冲区指针
+     * @param max : 缓冲区最大能容纳的字符总数
+     * @return int32 : 成功获取的字符总量
+     */
+    method public getline( str *int8, max int32 ) int32
+
+    method public block() nil
+}

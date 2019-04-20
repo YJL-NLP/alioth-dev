@@ -1,0 +1,482 @@
+{
+    "color" :true,
+    "path" :true,
+    "tmpls" : {
+        "0" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "internal error occured"
+        }, "1" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "composite data type name needed but '%R0' got"
+        }, "2" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "'%R0' is not an available element type as a template parameter"
+        }, "3" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template parameter missing"
+        }, "4" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element type needed but '%R0' got"
+        }, "5" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element name needed but '%R0' got"
+        }, "6" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element data type missing"
+        },"51" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "dependency module name neede but '%R0' got"
+        },"52" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "app name missing"
+        },"53" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "module alias missing"
+        },"101" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "module '%R0' from app '%G1' not found"
+        },"102" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "there is no module named '%R0' in any app"
+        },"103" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "dependency '%R0' of module '%B1' from '%G2' has multiple choices"
+        },"104" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "module descriptor table file of app '%R0' needed by module '%B1' from '%G2' is unreachable"
+        },"105" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "dependence level of module '%R0' from '%G1' is too deep"
+        },"106" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "module '%R0' from '%G1' has cyclic dependencies"
+        },"107" : {
+            "sev" : 1,
+            "beg" : "n",
+            "end" : "n",
+            "msg" : "cannot open file '%R0' for read while building module '%B1' from '%G2'"
+        },"108" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "the symbol '%R1' used by this dependency causes symbol conflict",
+            "sub" : [
+                [109,2,3]
+            ]
+        },"109" : {
+            "sev" : 4,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "previous reference here"
+        },"110" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "the module '%R1' referred by this transparent dependency has been imported already",
+            "sub" : [
+                [109,2,3]
+            ]
+        },"201" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "illegal token found : '%R0'"
+        },"202" : {
+            "sev" : 1,
+            "beg" : "b1",
+            "end" : "e1",
+            "msg" : "keyword '%B0' needed but '%R1' got"
+        },"203" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "module definition name needed but '%R0' got"
+        },"204" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "label '%R0' here causes symbol conflict",
+            "sub" : [
+                [109,1,2]
+            ]
+        },"301" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "predicate '%R0' here casuses conflict"
+        },"302" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "repeat of predicate '%R0'"
+        },"303" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "method name or predicate needed but '%R0' got"
+        },"304" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "method name needed but '%R0' got"
+        },"305" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "parameter list missing"
+        },"306" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "parameter name missing"
+        },"307" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e1",
+            "msg" : "bad element prototype of parameter '%R2'"
+        },"308" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "bad element type of return prototype"
+        },"309" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "method domain or predicate needed but '%R0' got"
+        },"310" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "token '>' needed to indicate method name"
+        },"311" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "repeat of synchronize flag"
+        },"312" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "method body missing"
+        },"401" : {
+            "sev" : 2,
+            "beg" : "b0",
+            "end" : "e1",
+            "msg" : "empty template parameter list is not allowed"
+        },"501" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "data type have to be completed since constraints are given"
+        },"502" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "use '^' to constraint data type instead of '%R0'"
+        },"503" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "pointer type cannot be used by element VAR"
+        },"504" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "non-pointer type cannot be used by element PTR"
+        },"701" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "enum name missing"
+        },"702" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "enum body missing"
+        },"703" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "enum item missing"
+        },"801" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "repeat of abstract flag"
+        },"802" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "class name needed but '%R0' got"
+        },"803" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template parameter name '%R0' conflicts"
+        },"804" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "class body missing"
+        },"805" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "base class list missing"
+        },"806" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "definition name '%R0' conflicts with scope name"
+        },"807" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element type of class member cannot be VAL"
+        },"1001" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "expression body missing"
+        },"1002" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "predicate missing"
+        },"1003" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element type missing"
+        },"1004" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "element type needed but '%R0' got"
+        },"1005" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "data type needed but '%R0' got"
+        },"1006" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "'ptr' or 'var' needed but '%R0' got "
+        },"1007" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "colon needed but '%R0' got"
+        },"1008" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "repeat of const flag"
+        },"1009" : {
+            "sev" :1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "repeat of static flag"
+        },"1010" :{
+            "sev" :1,
+            "beg" :"b0",
+            "end" :"e0",
+            "msg" :" the value* can not store"
+        },"2001" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "the name of definition '%R0' has been ocupied",
+            "sub" : [
+                [2002,1,2]
+            ]
+        },"2002" : {
+            "sev" : 4,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "the other usage of '%B0' is here"
+        },"2003" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "'%R0' does not stands for a domain"
+        },"2004" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "definition '%R0' not found"
+        },"2005" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "super class'%R0' causes cyclic dependencies"
+        },"2006" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid template parameter list for non-class definitions"
+        },"2007" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "number of template parameters mismatch",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2008" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid element prototype"
+        },"2009" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template parameter list conflict",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2010" : {
+            "sev" : 3,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "origin definition here"
+        },"2011" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid use of non-class definition(s)"
+        },"2012" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template class definition cannot be used as super class directly",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2013" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template class definition cannot be used as template parameter directly",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2014" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid use of template parameter list, module can never be a template class"
+        },"2015" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid use of pointer type"
+        },"2016" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "basic data type cannot be used as a super class",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2017" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid predicate of definition"
+        },"2018" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "transparent class cannot be defined with template parameter list"
+        },"2019" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "cannot inherit the same base classes more than once"
+        },"2020" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid use of template class"
+        },"2021" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "layout item causes cyclic dependencies"
+        },"2022" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "layout item causes symbol conflict"
+        },"2023" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "template parameter '%R0' not found, predicates goes after definitions of template parameter"
+        },"2024" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "none of predicates is established, invalid tempate parameter list",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2025" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "nothing can be found to be expression"
+        },"2026" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "flow control keyword needed but '%R0' found"
+        },"2027" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "transparent class should be a normal class definition"
+        },"2028" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "label wanted after VT::MEMEBER but '%R0' got"
+        }
+    }
+}

@@ -1,0 +1,17 @@
+module echo : alioth io
+
+class echo {
+    method entry talk( argc int32, argv **int8 ) int32
+}
+
+method echo::talk( argc int32, argv **int8 ) int32 {
+
+    var i = 1;
+    loop( i < argc ) {
+        io.print(argv[i]);
+        io.print(" ");
+        i++;
+    }
+    io.print("\n");
+    return 0;
+}

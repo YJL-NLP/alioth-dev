@@ -1,0 +1,84 @@
+module net
+
+/**
+ * @class SockAddr : socket地址
+ * @desc :
+ *  此结构用于描述TCP/IP架构传输层地址
+ */
+class SockAddr {
+    /**
+     * @member addr : 描述一个IPv4地址,网络字节顺序
+     */
+    var public addr int32
+
+    /**
+     * @member port : 描述一个端口号,网络字节顺序
+     */
+    var public port int16
+
+    /**
+     * @method CreateLocalHost: 构造一个socket地址
+     * @desc :
+     *  此方法用于构造socket地址结构
+     * @param port : 端口号,本机字节顺序
+     */
+    method CreateLocalHost( port int32 ) nil
+    method CreateBroadCast( port int32 ) nil
+
+    /**
+     * @method toReadable : 导出可读形式
+     * @desc :
+     *  此方法用于将socket地址结构中的网络字节顺序数据转化成本机可处理的数据格式
+     * @param str : 字符串缓冲,用于存储人类可读的点分制IP地址
+     * @param port : 本机字节顺序的端口号
+     */
+    method toReadable( str *int8, port *int32 ) nil
+}
+
+/**
+ * @class Socket : 套接字
+ * @desc :
+ *  此类用于抽象一个基于UDP的套接字
+ */
+class Socket {
+
+    /**
+     *@member soc : 套接字实际文件描述符
+     */
+    var soc int32
+
+    /**
+     * @method sendTo : 发送数据
+     * @desc :
+     *  此方法用于从socket向指定地址发送数据
+     *  若发送失败则返回值小于0
+     * @param addr : 发送数据的目标地址
+     * @param data : 要发送的数据的缓冲区指针
+     * @param count : 要发送的数据的总量
+     * @return int32 : 若发送成功,方法返回发送的数据的字节总量
+     */
+    method sendTo( ref addr SockAddr, data *int8, count int32 ) int32
+
+    /**
+     * @method recvFrom : 接收数据
+     * @desc :
+     *  此方法用于从socket的缓冲区读取接收到的数据
+     *  若此时没有可读数据,直接返回0
+     *  若网卡正在读写缓冲区,则阻塞等待网卡读写完毕
+     *  若发生错误,则返回值小于0
+     * @param addr : 数据发送方的socket地址
+     * @param buf : 用于接收数据的缓冲区
+     * @param max : 缓冲区的最大数据容量
+     * @return int32 : 若成功,方法返回成功接收的字节总量
+     */
+    method recvFrom( ref addr SockAddr, buf *int8, max int32 ) int32
+
+    /**
+     * @method Create : 创建一个套接字
+     * @desc :
+     *  此方法用于创建一个UDP Socket对象
+     * @param addr : 若此值不为空,则套接字会被绑定在这个地址上
+     * @return Socket : 创建的Socket对象
+     */
+    method Create( ref addr SockAddr ) nil
+}

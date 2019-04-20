@@ -1,0 +1,24 @@
+module iTalk :
+    alioth
+    io
+    net as this module
+    memory
+    string
+
+class public $ iTalk {
+
+    var addr SockAddr
+    var brod SockAddr
+    var peer Socket
+
+    /**
+     * @method main : 入口方法
+     * @desc :
+     *  此方法作为应用程序的入口存在
+     * @param argc : 命令行参数个数
+     * @param argv : 命令行参数指针
+     */
+    method public entry main( argc int32, argv **int8 ) int32
+    
+    method display( data *int8, ref addr SockAddr ) nil
+}

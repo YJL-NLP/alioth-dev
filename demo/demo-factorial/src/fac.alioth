@@ -1,0 +1,27 @@
+module Fac : alioth io string memory
+
+class Fac {
+    method entry main( argc int32, argv **int8 ) int32
+}
+
+method Fac::main( argc int32, argv **int8 ) int32 {
+    ptr buf = memory.alloc(32);
+    var i = 1;
+    var x = 1;
+
+    io.print("计算阶乘,请输入整数 i = ");
+    io.block();
+    
+    io.getline( buf, 32 );
+    i = string.toInt32( buf );
+    
+    io.print( "阶乘 !" );
+    io.print(buf);
+    io.print(" = ");
+    
+    loop ( i > 1 ) x *= i--;
+    
+    string.from(buf,x,32);
+    io.println( buf );
+    return 0;
+}
