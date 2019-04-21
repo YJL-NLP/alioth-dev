@@ -20,35 +20,49 @@ Alioth编译器尚在开发阶段,如下提及的语法特性还没有完全得�
 
 ## 准备开发环境
 
-~~~bash
-#!/bin/bash
+1. 安装依赖环境
 
-#生成开发所必须的路径
+   1. 当前版本的Alioth编译器依赖于`LLVM-8.0.0`来生成机器码,您可能需要安装`LLVM8.0.0`开发环境
 
-make initial
-~~~
+        ~~~bash
+        #!/bin/bash
 
-当前版本的Alioth编译器依赖于`LLVM-8.0.0`来生成机器码,您可能需要安装`LLVM8.0.0`开发环境
+        # 获得llvm源码
+        wget http://releases.llvm.org/8.0.0/llvm-8.0.0.src.tar.xz
+        tar -xJf llvm-8.0.0.src.tar.xz
+        mkdir llvm-8.0.0-src/build
+        cd llvm-8.0.0-src/build
 
-~~~bash
-#!/bin/bash
+        # 开启必要的选项,准备构建环境
+        cmake -DCMAKE_INSTALL_PREFIX=/usr -DLLVM_ENABLE_CXX1Y=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_PEDANTIC=OFF ..
 
-# 获得llvm源码
-wget http://releases.llvm.org/8.0.0/llvm-8.0.0.src.tar.xz
-tar -xJf llvm-8.0.0.src.tar.xz
-cd llvm-8.0.8-src
-mkidr build
-cd build
+        # 使用多个任务流加速构建
+        make -j
 
-# 开启必要的选项,准备构建环境
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DLLVM_ENABLE_CXX1Y=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_PEDANTIC=OFF ..
+        # 安装llvm
+        sudo make install
+        ~~~
 
-# 使用多个任务流加速构建
-make -j
+    2. 安装其他构建工具
 
-# 安装llvm
-sudo make install
-~~~
+        ~~~bash
+        #!/bin/bash
+
+        sudo apt-get install nasm make g++-8
+        ~~~
+
+2. 编译及安装Alioth
+
+    ~~~bash
+    #!/bin/bash
+
+    #生成开发所必须的路径
+    make initial
+
+    #编译并安装
+    make install
+    ~~~
+
 
 ## 项目结构
 
