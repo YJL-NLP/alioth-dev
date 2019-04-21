@@ -30,8 +30,8 @@ Alioth编译器尚在开发阶段,如下提及的语法特性还没有完全得�
         # 获得llvm源码
         wget http://releases.llvm.org/8.0.0/llvm-8.0.0.src.tar.xz
         tar -xJf llvm-8.0.0.src.tar.xz
-        mkdir llvm-8.0.0-src/build
-        cd llvm-8.0.0-src/build
+        mkdir llvm-8.0.0.src/build
+        cd llvm-8.0.0.src/build
 
         # 开启必要的选项,准备构建环境
         cmake -DCMAKE_INSTALL_PREFIX=/usr -DLLVM_ENABLE_CXX1Y=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_PEDANTIC=OFF ..
