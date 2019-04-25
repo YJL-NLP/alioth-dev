@@ -285,7 +285,7 @@ $AttrDef Yengine::constructAttributeDefinition( tokens::iterator& it, Lengine::l
             case 2:
                 if( dty = constructDataType(it,log,ret,true); dty ) {
                     if(dty->cate == UNKNOWN) {
-                        log(Lengine::E1005,*it);
+                        log(Lengine::E1005,*(it+1));
                         return nullptr;
                     }
                     stack.redu(2,VN::CLASS_LAYOUT_ITEM);
@@ -872,7 +872,7 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
                 stack.stay();
                 $dtype& dt = ret->predicates[-1][-1].arg = constructDataType(it,log,ret,true);
                 if( !dt or dt->cate == UNKNOWN ) {
-                    log(Lengine::E1005,*it);
+                    log(Lengine::E1005,*(it+1));
                     return nullptr;
                 }
             } else if( it->is(VN::DATTYPE) ) {
