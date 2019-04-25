@@ -78,25 +78,30 @@ bool Sengine::performDefinitionSemanticValidation( $modesc desc ) {
 bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
 
     bool fine = true;
+    map<string,$definition> nameT;
 
     auto perform = [&]( auto all, auto symbol, Type*& slot ) {
         if( !slot ) slot = StructType::create(mctx,symbol);
-        map<string,$definition> nameT;
         vector<Type*> members;
         for( auto def : all ) {
-            if( auto adef = ($AttrDef)def; adef ) {
-                if( nameT.count((string)def->name) ) {
-                    auto prev = nameT[(string)def->name];
-                    mlogrepo(def->getDocPath())(Lengine::E2001,def->name,prev->getDocPath(),prev->name);
-                    fine = false;
-                } else if( auto mty = performDefinitionSemanticValidation(adef); mty ) {
-                    nameT[(string)def->name] = def;
-                    members.push_back(mty);
-                } else {
-                    fine = false;
-                }
+            if( nameT.count((string)def->name) ) {
+                auto prev = nameT[(string)def->name];
+                mlogrepo(def->getDocPath())(Lengine::E2001,def->name,prev->getDocPath(),prev->name);
+                fine = false;
+            } else if( auto adef = ($AttrDef)def; adef ) {
+                auto mty = performDefinitionSemanticValidation(adef);
+                nameT[(string)def->name] = def;
+                members.push_back(mty);
+                if( !mty ) fine = false;
             }  else if( auto mdef = ($MethodDef)def; mdef ) {
-                fine = performDefinitionSemanticValidation(mdef) and fine;
+                auto symbol = generateGlobalUniqueName(($node)mdef);
+                if( nameT.count(symbol) ) {
+                    auto prev = nameT[symbol];
+                    mlogrepo(mdef->getDocPath())(Lengine::E2001,def->name,prev->getDocPath(),prev->name);
+                    fine = false;
+                } else {
+                    fine = performDefinitionSemanticValidation(mdef) and fine;
+                }
             }
         }
         ((StructType*)slot)->setBody(members);
@@ -619,7 +624,7 @@ Type* Sengine::generateTypeUsage( $dtype type ) {
     } else {
         auto eve = request( type->name, NormalClass );
         if( eve.size() != 1 ) {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name.phrase);
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
             return nullptr;
         }
         if( auto cdef = ($ClassDef)eve[0]; cdef ) {
@@ -627,7 +632,7 @@ Type* Sengine::generateTypeUsage( $dtype type ) {
             ltype = mnamedT[symbol];
             if( !ltype ) ltype = mnamedT[symbol] = StructType::create(mctx,symbol);
         } else {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name.phrase);
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
             return nullptr;
         }
     }
