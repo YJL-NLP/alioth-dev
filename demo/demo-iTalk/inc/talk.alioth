@@ -18,7 +18,7 @@ class iTalk {
      * @param argc : 命令行参数个数
      * @param argv : 命令行参数指针
      */
-    method public entry main( argc int32, argv **int8 ) int32
+    method public main( argc int32, argv **int8 ) int32
     
     method display( data *int8, ref addr SockAddr ) nil
 }

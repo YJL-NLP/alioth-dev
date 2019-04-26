@@ -1,0 +1,7 @@
+module Sym
+
+class Sym {
+    var met x
+
+    method met( x x ) nil
+}

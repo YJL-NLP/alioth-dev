@@ -65,6 +65,7 @@ bool Sengine::performDefinitionSemanticValidation( $modesc desc ) {
             fine = performDefinitionSemanticValidation(mdef) and fine;
         }
     }
+    if( members.empty() ) members.push_back(Type::getInt32Ty(mctx));
 
     auto symbol = generateGlobalUniqueName(($node)mod,Meta);
     /*auto& modT = mmetaT[mod] =*/ 
@@ -134,7 +135,7 @@ bool Sengine::performImplementationSemanticValidation( $ClassDef clas ) {
 
 bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
     vector<Type*> pts;
-    auto rtp = generateTypeUsageAsReturnValue(method->rproto);
+    auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts);
     auto tss = generateGlobalUniqueName(method->getScope(),method->meta?Meta:None);
     if( mnamedT.count(tss) == 0 ) mnamedT[tss] = StructType::create(mctx,tss);
     pts.push_back(mnamedT[tss]->getPointerTo());
@@ -153,25 +154,9 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
 
     auto def = requestPrototype(($implementation)method);
-    if( def->entry ) {
-        auto start = Function::Create(
-            FunctionType::get(
-                Type::getInt32Ty(mctx),
-                {Type::getInt32Ty(mctx),Type::getInt8PtrTy(mctx)->getPointerTo()},
-                false
-            ),
-            GlobalValue::ExternalLinkage,
-            "start",
-            mcurmod.get()
-        );
-        auto ebb = BasicBlock::Create(mctx,"",start);
-        auto builder = IRBuilder<>(ebb);
-        vector<Value*> args;
-        args.push_back(Constant::getNullValue(fp->arg_begin()->getType()));
-        args.push_back(start->arg_begin());
-        args.push_back(start->arg_begin()+1);
-        auto ret = builder.CreateCall(fp,args);
-        builder.CreateRet( ret );
+    if( !def ) {
+        mlogrepo(method->getDocPath())(Lengine::E2029,method->funame.phrase);
+        return false;
     }
 
     auto ebb = BasicBlock::Create(mctx,"",fp);
@@ -595,12 +580,14 @@ Type* Sengine::generateTypeUsageAsAttribute( $eproto proto ) {
     return ty;
 }
 
-Type* Sengine::generateTypeUsageAsReturnValue( $eproto proto ) {
+Type* Sengine::generateTypeUsageAsReturnValue( $eproto proto, vector<Type*>& pts ) {
     if( !proto ) return Type::getVoidTy(mctx);
-    //[TODO]: 这里的算法待优化,尚不完善
     Type* ty = generateTypeUsage(proto->dtyp);
     if( !ty ) return nullptr;
-    if( ty->isStructTy() ) return Type::getInt64Ty(mctx);
+    if( ty->isStructTy() ) {
+        pts.insert(pts.begin(),ty->getPointerTo());
+        return Type::getInt64Ty(mctx);
+    }
     else return ty;
 }
 
@@ -928,6 +915,16 @@ bool Sengine::loadModuleDefinition( $modesc mod ) {
 
         syn->setScope(root);
         mod->deps += syn->signature->deps;
+
+        if( syn->signature->entry ) {
+            if( root->es ) {
+                mlogrepo(syn->getDocPath())(Lengine::E2031,syn->signature->entry,root->es->getDocPath(),root->es->entry);
+                return false;
+            } else {
+                root->es = syn->signature;
+            }
+        }
+
         for( auto d : syn->signature->deps ) {
             d->self = mod;
             mod->manager->closeUpDependency(d);
@@ -982,6 +979,7 @@ bool Sengine::performDefinitionSemanticValidation() {
 }
 
 Sengine::ModuleTrnsUnit Sengine::performImplementationSemanticValidation( $modesc desc, Dengine& dengine ) {
+    using namespace llvm;
     if( mrepo.count(desc) != 1 ) return nullptr;
 
     auto mod = mrepo[desc];
@@ -1000,6 +998,46 @@ Sengine::ModuleTrnsUnit Sengine::performImplementationSemanticValidation( $modes
     }
     for( auto im : mod->impls ) if( auto mim = ($MethodImpl)im; mim ) {
         fine = performImplementationSemanticValidation(mim) and fine;
+    }
+
+    if( mod->es ) {
+        auto res = request(mod->es->entry,NormalClass,mod);
+        auto int32 = eproto::MakeUp(mod,VAR,dtype::MakeUp(mod,token(VT::INT32),{}));
+        auto int8p = eproto::MakeUp(mod,PTR,dtype::MakeUp(mod,token(VT::INT8),{false,false}));
+        bool found = false;
+
+        for( auto def : res ) if( auto met = ($MethodDef)def; met ) { 
+            if( met->size() != 2 ) continue;
+            if( !checkEquivalent( (*met)[0]->proto,int32) ) continue;
+            if( !checkEquivalent( (*met)[1]->proto,int8p) ) continue;
+            auto fs = generateGlobalUniqueName(($node)met);
+            auto ft = (FunctionType*)mnamedT[fs];
+            auto fp = mcurmod->getFunction(fs);
+            if( !fp ) {fine = false;break;}
+            auto start = Function::Create(
+                FunctionType::get(Type::getInt32Ty(mctx),{Type::getInt32Ty(mctx),Type::getInt8PtrTy(mctx)->getPointerTo()},false),
+                GlobalValue::ExternalLinkage,
+                "start",
+                mcurmod.get()
+            );
+            auto ebb = BasicBlock::Create(mctx,"",start);
+            auto builder = IRBuilder<>(ebb);
+            auto et = mnamedT[generateGlobalUniqueName(($node)mod,Meta)];
+            auto gv = mcurmod->getOrInsertGlobal(generateGlobalUniqueName(($node)mod,Entity),et);
+            vector<Value*> args;
+            args.push_back((Value*)gv);
+            args.push_back(start->arg_begin());
+            args.push_back(start->arg_begin()+1);
+            auto ret = builder.CreateCall(fp,args);
+            builder.CreateRet( ret );
+            found = true;
+            break;
+        }
+
+        if( !found ) {
+            fine = false;
+            mlogrepo(mod->es->getDocPath())(Lengine::E2032,mod->es->entry);
+        }
     }
 
     if( !fine ) mcurmod = nullptr;

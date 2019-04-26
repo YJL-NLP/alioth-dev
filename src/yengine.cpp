@@ -476,6 +476,7 @@ $ModuleSignature Yengine::constructModuleSignature( tokens::iterator& it, Lengin
             } break;
         case 3:
             if( it->is(VT::COLON) ) stack.movi(4);
+            else if( it->is(VT::ENTRY) ) stack.movi(5);
             else if( it->is(VN::LIST) ) stack.redu(3,VN::MODULE);
             else stack.redu(-3,VN::MODULE);
             break;
@@ -491,6 +492,19 @@ $ModuleSignature Yengine::constructModuleSignature( tokens::iterator& it, Lengin
             } else {
                 stack.redu(-1,VN::LIST);
             } break;
+        case 5:
+            if( it->is(VT::LABEL) ) {
+                sig->entry = *it;
+                stack.movi(6);
+            } else {
+                log(Lengine::E2030,*it);
+                return nullptr;
+            } break;
+        case 6:
+            if( it->is(VT::COLON) ) stack.movi(4);
+            else if( it->is(VN::LIST) ) stack.redu(5,VN::MODULE);
+            else stack.redu(-5,VN::MODULE);
+            break;
     }
 
     sig->phrase = *it;
@@ -966,7 +980,7 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
                 if( ret->constraint ) {
                     log(Lengine::E302,*it);
                     return nullptr;
-                } else if( ret->meta or ret->entry ) {
+                } else if( ret->meta ) {
                     log(Lengine::E301,*it);
                     return nullptr;
                 }
@@ -985,22 +999,10 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
                 }
                 ret->visibility = *it;
                 stack.stay();
-            } else if( it->is(VT::ENTRY) ) {
-                if( ret->meta ) {
-                    log(Lengine::E302,*it);
-                    log(Lengine::E302,ret->meta);
-                    return nullptr;
-                } else if( ret->constraint or ret->entry ) {
-                    log(Lengine::E301,*it);
-                    log(Lengine::E301,ret->constraint?ret->constraint:ret->entry);
-                    return nullptr;
-                }
-                ret->entry = *it;
-                stack.stay();
             } else if( it->is(VT::META) ) {
-                if( ret->constraint or ret->entry ) {
+                if( ret->constraint ) {
                     log(Lengine::E301,*it);
-                    log(Lengine::E301,ret->constraint?ret->constraint:ret->entry);
+                    log(Lengine::E301,ret->constraint);
                     return nullptr;
                 } else if( ret->meta ) {
                     log(Lengine::E302,*it);

@@ -47,6 +47,13 @@ struct module : public ClassDef {
          */
         implementations impls;
 
+        /**
+         * @member entry : 包含入口方法名的模块签名
+         * @desc :
+         *  至多只能出现一次的模块签名中的入口标记
+         */
+        $ModuleSignature es;
+
     public:
 
         module() = default;

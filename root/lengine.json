@@ -477,6 +477,29 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "label wanted after VT::MEMEBER but '%R0' got"
+        },"2029" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "cannot find the corresponding definition of this implementation"
+        },"2030" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "entry method name needed but '%R0' got"
+        },"2031" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "the second entry sign found",
+            "sub" : [
+                [2010,1,2]
+            ]
+        },"2032" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "no suitable instance of overloaded method '%B0' found for generating entry point"
         }
     }
 }

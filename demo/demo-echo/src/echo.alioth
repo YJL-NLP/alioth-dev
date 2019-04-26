@@ -1,7 +1,7 @@
-module echo : alioth io
+module echo entry talk : alioth io
 
 class echo {
-    method entry talk( argc int32, argv **int8 ) int32
+    method talk( argc int32, argv **int8 ) int32
 }
 
 method echo::talk( argc int32, argv **int8 ) int32 {

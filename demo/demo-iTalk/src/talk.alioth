@@ -1,4 +1,4 @@
-module iTalk
+module iTalk entry main
 
 method iTalk::main( argc int32, argv **int8 ) int32 {
 

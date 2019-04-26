@@ -26,6 +26,13 @@ struct ModuleSignature : public node {
         const std::string name;
 
         /**
+         * @member entry : 入口符号
+         * @desc :
+         *  可选的，记录入口符号
+         */
+        token entry;
+
+        /**
          * @member deps : 依赖
          * @desc :
          *  描述模块对外界的依赖情况

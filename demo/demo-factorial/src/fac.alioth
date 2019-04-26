@@ -1,7 +1,7 @@
-module Fac : alioth io string memory
+module Fac entry main : alioth io string memory
 
 class Fac {
-    method entry main( argc int32, argv **int8 ) int32
+    method main( argc int32, argv **int8 ) int32
 }
 
 method Fac::main( argc int32, argv **int8 ) int32 {

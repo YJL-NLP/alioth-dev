@@ -270,8 +270,10 @@ class Sengine {
          * @method generateTypeUsageAsReturnValue : 为返回值生成类型
          * @desc :
          *  若返回值类型为VAR NAMED,则使用指针在参数中开辟空间返回,并返回数字
+         * @param proto : 元素原型
+         * @param pts : 若方法返回结构体，函数会为参数列表追加指针
          */
-        Type* generateTypeUsageAsReturnValue( $eproto proto );
+        Type* generateTypeUsageAsReturnValue( $eproto proto, vector<Type*>& pts );
 
         /**
          * @method generateTypeUsage : 产生数据类型

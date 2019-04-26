@@ -43,13 +43,6 @@ struct MethodDef : public definition, public morpheme::plist {
          *  若此成员有效,则方法成为原子操作,或称同步方法.
          */
         token sync;
-
-        /**
-         * @member entry : 入口标记
-         * @desc :
-         *  标记方法为入口方法
-         */
-        token entry;
     
     public:
 

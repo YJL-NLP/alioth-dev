@@ -58,10 +58,12 @@ void Xengine::check(VT t,bool s ) {
             else if( synst == 6 ) synst = 7;
             else if( synst == 7 ) synst = 5;
             else if( synst == 8 ) synst = 5;
+            else if( synst == 10 ) synst = 11;
             else state = -1;
             break;
         case VT::COLON:
             if( synst == 3 ) synst = 4;
+            else if( synst == 11 ) synst = 4;
             else state = -1;
             break;
         case VT::AT:
@@ -79,6 +81,10 @@ void Xengine::check(VT t,bool s ) {
             break;
         case VT::iTHIS:
             if( synst == 8 ) synst = 9;
+            else state = -1;
+            break;
+        case VT::ENTRY:
+            if( synst == 3 ) synst = 10;
             else state = -1;
             break;
         default:state = -1;
