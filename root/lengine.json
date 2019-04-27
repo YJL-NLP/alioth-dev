@@ -500,6 +500,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "no suitable instance of overloaded method '%B0' found for generating entry point"
+        },"2033" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "implementation after termination is not allowed"
         }
     }
 }

@@ -1,7 +1,13 @@
 module Sym
 
 class Sym {
-    var met x
+    var met int32
 
-    method met( x x ) nil
+    method met( x int32 ) nil
+    method zzz() nil
+}
+
+method Sym::met( x int32 ) nil {
+    zzz();
+    return;
 }

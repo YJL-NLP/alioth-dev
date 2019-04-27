@@ -29,6 +29,23 @@ static bool isalioth( const string& name ) {
     return true;
 }
 
+static int whichLd( char* buf ) {
+    int io[2];
+    int 
+        so = dup(1),
+        si = dup(0);
+    if( pipe(io) ) return -1;
+    dup2(io[1],1);
+    dup2(io[0],0);
+    auto ret = system("which ld");
+    if( ret == 0 ) scanf("%s",buf);
+    dup2(so,1);
+    dup2(si,0);
+    close(io[0]);
+    close(io[1]);
+    return ret;
+}
+
 void Manager::recordMissing($depdesc D, $modesc M, Lengine::logs& log ) {
     bool already = false;
     for( auto [RD,RM] : missing ) 
@@ -374,36 +391,23 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
         for( auto imname = mnames.begin(); imname != mnames.end(); imname++  ) if( auto& mname = *imname; mname == desc->name ) {
             mnames.erase(imname);
             auto unit = msengine.performImplementationSemanticValidation(desc,mdengine);
-            if( !unit ) break;
-            if( !msengine.triggerBackendTranslation(unit, fd, mdengine) ) bfine = false;
+            if( !unit ) bfine = false;
+            else if( !msengine.triggerBackendTranslation(unit, fd, mdengine) ) bfine = false;
             break;
         }
     }
 
     log += msengine.getLog();
-    const char* fifo_symbol = "fifo.aliothc.node";
     if( bfine and descs.size() and fork() == 0 ) {
         vector<const char*> sargs;
         for( auto& arg : args ) sargs.push_back(arg.c_str()); sargs.push_back(nullptr);
-        mkfifo(fifo_symbol, 0600 );
-        if( fork() == 0 ) {
-            auto os = open(fifo_symbol,O_WRONLY);
-            dup2(os,1);
-            system("which ld");
-            close(os);
-            exit(0);
-        }
         char cmd[128];
-        auto is = open( fifo_symbol,O_RDONLY);
-        read(is, cmd, 128 );
-        close(is);
-        sscanf(cmd,"%s",cmd);
-        unlink(fifo_symbol);
-        execv( cmd, (char*const*)&sargs[0] );
+        if( whichLd(cmd) ) cout << "cannot find linker \"ld\"" << endl;
+        else execv( cmd, (char*const*)&sargs[0] );
     }
     int st;
     wait(&st);
-    return bfine;
+    return bfine and st == 0;
 }
 
 int Manager::completDependencies( const string& name, Lengine::logr& log, modescs& output ) {

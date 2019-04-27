@@ -180,7 +180,10 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
 }
 
 bool Sengine::performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder ) {
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     bool ret = true;
     if( auto ct = ($FlowCtrlImpl)impl; ct ) ret = performImplementationSemanticValidation( ct, builder);
     else if( auto ex = ($ExpressionImpl)impl; ex ) ret = performImplementationSemanticValidation( ex, builder);
@@ -192,7 +195,10 @@ bool Sengine::performImplementationSemanticValidation( $implementation impl, IRB
 }
 
 bool Sengine::performImplementationSemanticValidation( $InsBlockImpl  impl ,IRBuilder<>& builder ){
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     bool ret = true;
 
     for( auto imp : impl->impls )
@@ -202,7 +208,10 @@ bool Sengine::performImplementationSemanticValidation( $InsBlockImpl  impl ,IRBu
 }
 
 bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm::IRBuilder<>& builder ) {
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     switch( impl->action ) {
         case RETURN: {
             if( impl->expr ) {
@@ -482,7 +491,10 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 }
 
 bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm::IRBuilder<>& builder ) {
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     $imm inm = nullptr;
     Value* inv = nullptr;
     if( impl->init ) {
@@ -503,7 +515,10 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
 }
 
 bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuilder<>& builder ) {
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     auto bb2 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bb3 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bb4 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
@@ -529,7 +544,10 @@ bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuild
 }
 
 bool Sengine::performImplementationSemanticValidation( $LoopImpl impl ,IRBuilder<>& builder) {
-    if( flag_terminate ) return false;
+    if( flag_terminate ){
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    } 
     auto bb1 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bb3 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bd = IRBuilder<>(mctx);
@@ -1057,8 +1075,10 @@ bool Sengine::triggerBackendTranslation( ModuleTrnsUnit unit, Dengine::vfdm fd, 
     unit->setTargetTriple(mttraiple);
     unit->setDataLayout(mtmachine->createDataLayout());
     auto efdi = dengine.getOfd(efd);
+    auto se = dup(2);
     dup2(efdi,2);
     unit->dump();
+    dup2(se,2);
     close(efdi);
     mtmachine->addPassesToEmitFile(pass,dest,&wdest,TargetMachine::CGFT_ObjectFile);
     for( auto& fun : unit->getFunctionList() ) {
@@ -1071,7 +1091,6 @@ bool Sengine::triggerBackendTranslation( ModuleTrnsUnit unit, Dengine::vfdm fd, 
     if( verifyModule(*unit,&ldest) ) return false;
     pass.run(*unit);
     dest.flush();
-    unit->print(ldest,nullptr);
     return true;
 
 }
