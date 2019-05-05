@@ -164,7 +164,7 @@ $ConstructImpl Yengine::constructParameterDefinition( tokens::iterator& it, Leng
             if( it->is(VN::DATTYPE) ) {
                 stack.redu(2,VN::PARAM);
             } else if( auto dt = constructDataType(it,log,sc,true); dt ) {
-                if( dt->cate == UNKNOWN and et == UDF ) {
+                if( dt->is(typeuc::UnknownType) and et == UDF ) {
                     log(Lengine::E6,def->name);
                     return nullptr;
                 }
@@ -208,7 +208,7 @@ $ConstructImpl Yengine::constructParameterImplementation( tokens::iterator& it, 
             if( it->is(VN::DATTYPE) ) {
                 stack.redu(2,VN::PARAM);
             } else if( auto dt = constructDataType(it,log,sc,true); dt ) {
-                if( dt->cate == UNKNOWN and et == UDF ) {
+                if( dt->is(typeuc::UnknownType) and et == UDF ) {
                     log(Lengine::E6,ele->name);
                     return nullptr;
                 }
@@ -229,7 +229,7 @@ $AttrDef Yengine::constructAttributeDefinition( tokens::iterator& it, Lengine::l
     ret->wrtno = wn;
     ret->setScope(sc);
     etype   ety;
-    $dtype  dty;
+    $typeuc dty;
     token   con;
     
     if(it->is(VT::VAR)) {
@@ -284,7 +284,7 @@ $AttrDef Yengine::constructAttributeDefinition( tokens::iterator& it, Lengine::l
                 } break;
             case 2:
                 if( dty = constructDataType(it,log,ret,true); dty ) {
-                    if(dty->cate == UNKNOWN) {
+                    if(dty->is(typeuc::UnknownType)) {
                         log(Lengine::E1005,*(it+1));
                         return nullptr;
                     }
@@ -301,35 +301,40 @@ $AttrDef Yengine::constructAttributeDefinition( tokens::iterator& it, Lengine::l
     return ret;
 }
 
-$dtype Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb ) {
+$typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb ) {
     smachine stack = smachine(it);
-    $dtype ret = new dtype;
+    $typeuc ret = new typeuc;
     stack.movi(1,0);
 
     while( stack.size() > 0 ) switch( (state)stack ) {
         case 1:
             if( it->is(VT::bXOR) ) {
-                ret->cons.push_back(true);
-                stack.stay(1);
+                ret->id = typeuc::ConstraintedPointerType;
+                stack.movi(2);
             } else if( it->is(VT::MUL) ) {
-                ret->cons.push_back(false);
-                stack.stay(1);
+                ret->id = typeuc::UnconstraintedPointerType;
+                stack.movi(2);
             } else if( it->is(CT::BASIC_TYPE) ) {
-                ret->cate = BASIC;
-                ret->basc = *it;
+                ret = typeuc::GetBasicDataType(it->id);
                 stack.redu(1,VN::DATTYPE);
             } else if( it->is(VT::LABEL) ) {
                 ret->name = constructNameUseCase(it,log,sc,absorb);
                 if( !ret->name ) return nullptr;
-                ret->cate = NAMED;
+                ret->id = typeuc::NamedType;
                 stack.redu(1,VN::DATTYPE);
             } else {
-                if( ret->cons.size() > 0 ) {
-                    log(Lengine::E501,*it);
-                    return nullptr;
-                }
-                ret->cate = UNKNOWN;
+                ret->id = typeuc::UnknownType;
                 stack.redu(-1,VN::DATTYPE);
+            } break;
+        case 2:
+            if( auto dt = constructDataType(it, log, sc, absorb); !dt ) {
+                return nullptr;
+            } else if( dt->is(typeuc::UnknownType) ) {
+                log(Lengine::E501,*it);
+                return nullptr;
+            } else {
+                ret->sub = dt;
+                stack.redu(2,VN::DATTYPE);
             } break;
     }
 
@@ -369,9 +374,9 @@ $eproto Yengine::constructElementPrototype( tokens::iterator& it, Lengine::logs&
             } else if( it->is(VN::DATTYPE) ) {
                 stack.redu(1,VN::PROTO);
             } else {
-                ret->dtyp = constructDataType(it,log,sc,absorb);
-                if( !ret->dtyp ) return nullptr;   //由于分支的覆盖能力,此处不能检查数据类型与元素类型是否相容
-                if( ret->elmt == UDF and ret->dtyp->cate == UNKNOWN ) {
+                ret->dtype = constructDataType(it,log,sc,absorb);
+                if( !ret->dtype ) return nullptr;   //由于分支的覆盖能力,此处不能检查数据类型与元素类型是否相容
+                if( ret->elmt == UDF and ret->dtype->is(typeuc::UnknownType) ) {
                     log(Lengine::E6,*it);
                     return nullptr;
                 }
@@ -884,8 +889,8 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
         case 13:
             if( it->is(VT::GT) ) {
                 stack.stay();
-                $dtype& dt = ret->predicates[-1][-1].arg = constructDataType(it,log,ret,true);
-                if( !dt or dt->cate == UNKNOWN ) {
+                $typeuc& dt = ret->predicates[-1][-1].arg = constructDataType(it,log,ret,true);
+                if( !dt or dt->is(typeuc::UnknownType) ) {
                     log(Lengine::E1005,*(it+1));
                     return nullptr;
                 }

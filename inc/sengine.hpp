@@ -280,7 +280,21 @@ class Sengine {
          * @desc :
          *  若目标不可达,则报告错误,日志被写入日志仓库
          */
-        Type* generateTypeUsage( $dtype type );
+        Type* generateTypeUsage( $typeuc type );
+
+        /**
+         * @method determineTypeUsage : 推导数据类型
+         * @desc :
+         *  查询语法树,寻找命名数据类型对应的类定义
+         *  若类定义不存在或存在多个,查询失败,日志被写入日志仓库
+         * @param type : 若类型是命名的数据类型,则需要推导,其他直接返回
+         *  若推导成功,源数据类型会被修改为CompositeType以缓冲推导结果
+         *  若失败,源数据类型被设置成UnsolvableType并返回nullptr
+         * @param expr : 待推导数据类型的表达式
+         * @return : 推导的数据类型
+         */
+        $typeuc determineDataType( $typeuc type );
+        $typeuc determineDataType( $ExpressionImpl expr );
 
         /**
          * @method generateGlobalUniqueName : 产生全局唯一名称
@@ -336,7 +350,7 @@ class Sengine {
          * @method checkEquivalent : 检查类型等价性
          */
         bool checkEquivalent( $eproto a, $eproto b );
-        bool checkEquivalent( $dtype a, $dtype b );
+        bool checkEquivalent( $typeuc a, $typeuc b );
 
     public:
 

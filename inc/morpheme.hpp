@@ -43,7 +43,7 @@ struct predi {
      * @desc :
      *  11号限制规则需要一个数据类型作为参数
      */
-    $dtype arg;
+    $typeuc arg;
 
     /**
      * @member index : 模板参数下标

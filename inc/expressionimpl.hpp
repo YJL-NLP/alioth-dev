@@ -82,7 +82,7 @@ struct ExpressionImpl : public implementation {
          * @member mtarget : 目标数据类型
          * @desc : 
          */
-        dtype  target;         //  mtype 为treat，transform时有效
+        $typeuc  target;         //  mtype 为treat，transform时有效
 
     public:
         bool is( cnode ) const override;

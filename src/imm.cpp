@@ -58,7 +58,7 @@ Value* imm::asparameter( IRBuilder<>& builder, $eproto req )const {
         default: return nullptr;
         case ety:case val: return v;
         case adr: 
-            if( proto->elmt == VAR and proto->dtyp->cate == NAMED ) return v;
+            if( proto->elmt == VAR and proto->dtype->is(typeuc::CompositeType) ) return v;
             else return builder.CreateLoad(v);
     }
 }

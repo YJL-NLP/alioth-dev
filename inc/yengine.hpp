@@ -212,9 +212,9 @@ class Yengine {
          * @param log : 日志器
          * @param sc : 作用域
          * @param absorb : 是否将'<'视为模板参数列表的开头符号
-         * @return $dtype : 产生的数据结构
+         * @return $typeuc : 产生的数据结构
          */
-        $dtype constructDataType( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb );
+        $typeuc constructDataType( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb );
 
         /**
          * @method constructElementPrototype : 构建元素原型
