@@ -580,7 +580,7 @@ Type* Sengine::generateTypeUsageAsParameter( $eproto proto ) {
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-    if( proto->elmt == VAL or proto->elmt == REF or (proto->elmt == VAR and proto->dtype->is(typeuc::NamedType)) ) {
+    if( proto->elmt == VAL or proto->elmt == REF or proto->elmt == VAR and ty->isStructTy() ) {
         ty = ty->getPointerTo();
     }
 
@@ -624,19 +624,7 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
             case typeuc::Float64                    :  return Type::getDoubleTy(mctx);  break;
         }
     } else if( type->is(typeuc::NamedType) ) {
-        auto eve = request( type->name, NormalClass );
-        if( eve.size() != 1 ) {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
-            return nullptr;
-        }
-        if( auto cdef = ($ClassDef)eve[0]; cdef ) {
-            type->id = typeuc::CompositeType;
-            type->sub = cdef;
-            return generateTypeUsage(type);
-        } else {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
-            return nullptr;
-        }
+        return generateTypeUsage(determineDataType(type));
     } else if( type->is(typeuc::CompositeType) ) {
         auto symbol = generateGlobalUniqueName(($node)type->sub);
         if( !mnamedT.count(symbol) ) mnamedT[symbol] = StructType::create(mctx,symbol);
@@ -647,6 +635,28 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
     }
 
     return nullptr;
+}
+
+$typeuc Sengine::determineDataType( $typeuc type ) {
+    if( type->is(typeuc::NamedType) ) {
+        auto eve = request( type->name, NormalClass );
+        if( eve.size() != 1 ) {
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+        if( auto cdef = ($ClassDef)eve[0]; cdef ) {
+            type->id = typeuc::CompositeType;
+            type->sub = cdef;
+            return type;
+        } else {
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+    } else if( type->is(typeuc::UndeterminedType) ) {
+        return nullptr;
+    } else {
+        return type;
+    }
 }
 
 std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
