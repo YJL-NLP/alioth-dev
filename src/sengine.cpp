@@ -674,17 +674,20 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
             case VAL : suffix += "L";break;
             case UDF : suffix += "X";break;
         }
+
+        auto dtype = pd->proto->dtype;
         
-        if( pd->proto->dtype->is(typeuc::PointerType) ) {
+        if( dtype->is(typeuc::PointerType) ) {
             int mask = 0;
             int i = 0;
-            for( auto p = pd->proto->dtype; p->is(typeuc::PointerType); p = p->sub ) {
-                if( pd->proto->dtype->is(typeuc::ConstraintedPointerType) ) mask |= 1 << i++;
+            while( dtype->is(typeuc::PointerType) ) {
+                if( dtype->is(typeuc::ConstraintedPointerType) ) mask |= 1 << i++;
+                dtype = dtype->sub;
             }
             suffix += to_string(mask);
         }
 
-        switch( pd->proto->dtype->id ) {
+        switch( dtype->id ) {
             case typeuc::UnknownType:   suffix += "U";break;
             case typeuc::BooleanType:   suffix += "b";break;
             case typeuc::Int8:          suffix += "i8";break;
@@ -886,10 +889,9 @@ bool Sengine::checkEquivalent( $eproto a, $eproto b ) {
 
 bool Sengine::checkEquivalent( $typeuc a, $typeuc b ) {
     if( !a or !b ) return false;
-    if( a->id != b->id ) return false;
-
     if( !determineDataType(a) ) return false;
     if( !determineDataType(b) ) return false;
+    if( a->id != b->id ) return false;
     if( a->is(typeuc::CompositeType) ) return a->sub == b->sub;
 
     return true;
