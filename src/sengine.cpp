@@ -649,6 +649,7 @@ $typeuc Sengine::determineDataType( $typeuc type ) {
             type->sub = cdef;
             return type;
         } else {
+            type->id = typeuc::UnsolvableType;
             mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
             return nullptr;
         }
