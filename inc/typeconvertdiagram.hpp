@@ -20,39 +20,39 @@ enum ConvertAction{
 };
 
 /** 
- * @struct dcp : TypeType Convert Path， 类型转换路径 
+ * @struct tcp : Type Convert Path， 类型转换路径 
  * @desc :
  *  类型转换路径，记录两种类型之间的转换路径
  */
-struct dcp : public thing { 
+struct tcp : public thing { 
 
-    public: 
+    public:
         const ConvertAction ca;
         const $typeuc dst,src;
-        const agent<dcp> next;
+        const agent<tcp> next;
 
     public: 
-        dcp( ConvertAction c = Noneed, $typeuc d = nullptr, $typeuc s = nullptr,agent<dcp> n = nullptr):ca(c),dst(d),src(s),next(n){}
-        dcp( const dcp& an ):dcp(an.ca,an.dst,an.src,an.next?new dcp(*an.next):nullptr) {}
-        dcp( const dcp& an, agent<dcp> n ):dcp(an.ca,an.dst,an.src,n){}
-        dcp( dcp&& an ) = delete;
-        ~dcp() = default;
+        tcp( ConvertAction c = Noneed, $typeuc d = nullptr, $typeuc s = nullptr,agent<tcp> n = nullptr):ca(c),dst(d),src(s),next(n){}
+        tcp( const tcp& an ):tcp(an.ca,an.dst,an.src,an.next?new tcp(*an.next):nullptr) {}
+        tcp( const tcp& an, agent<tcp> n ):tcp(an.ca,an.dst,an.src,n){}
+        tcp( tcp&& an ) = delete;
+        ~tcp() = default;
 
-        dcp& operator=(const dcp&) = delete;
-        dcp& operator=(dcp&&) = delete;
+        tcp& operator=(const tcp&) = delete;
+        tcp& operator=(tcp&&) = delete;
 };
 
-using $dcp = agent<dcp>; // dcp 代理
+using $tcp = agent<tcp>; // tcp 代理
 
 /** 
- * @class TypeConvertDiagram : 类型转换图
+ * @struct TypeConvertDiagram : 类型转换图
  * @desc:
  *  记录所有可能存在的数据类型，以及它们之间可行的转换路径
  */
 
-class TypeConvertDiagram {
+struct TypeConvertDiagram {
 
-    private:
+    public:
         /**
          * @member mnode : 节点
          * @desc :
@@ -70,7 +70,16 @@ class TypeConvertDiagram {
          *  边是图的主要构成部分之一
          *  此处存储的边都是孤立的链表节点，不能用作链
          */
-        chainz<$dcp> medge;
+        chainz<$tcp> medge;
+
+        /**
+         * @member min,mout : 出入边缓冲
+         * @desc :
+         *  缓冲节点的出入边关系
+         *  加快搜索速度
+         */
+        map<$typeuc,chainz<$tcp>> min;
+        map<$typeuc,chainz<$tcp>> mout;
 
         /**
          * @member mcachen : 节点缓冲
@@ -86,10 +95,7 @@ class TypeConvertDiagram {
          *  此容器缓冲已经被搜索过的两个节点之间的最短路径
          *  请不要在其他位置修改这些路径的信息，那会影响到全局范围
          */
-        map<tuple<$typeuc,$typeuc>,$dcp> mcachep;
-
-    public:
-        TypeConvertDiagram();
+        map<tuple<$typeuc,$typeuc>,$tcp> mcachep;
 };
 
 }

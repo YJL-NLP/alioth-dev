@@ -882,23 +882,32 @@ Value* Sengine::requestThis( $implementation impl ) {
     return fp->arg_begin();
 }
 
-bool Sengine::checkEquivalent( $eproto a, $eproto b, Situation s ) {
-    if( !a or !b ) return false;
-    if( (bool)a->cons xor (bool)b->cons ) return false;
-    if( a->elmt != b->elmt ) return false;
-    auto dcp = checkCompatibility( a->dtype, b->dtype, s );
-    if( dcp and dcp->ca == Noneed ) return true;
-    else return false;
+bool Sengine::checkEquivalent( $eproto dst, $eproto src ) {
+    if( !dst or !src ) return false;
+    if( (bool)dst->cons xor (bool)src->cons ) return false;
+    if( dst->elmt != src->elmt ) return false;
+    return checkEquivalent( dst->dtype, src->dtype );
 }
 
-$dcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
+bool Sengine::checkEquivalent( $typeuc dst, $typeuc src ) {
+    if( !dst or !src ) return false;
+    if( !determineDataType(dst) ) return false;
+    if( !determineDataType(src) ) return false;
+
+    if( dst->id != src->id ) return false;
+    if( dst->is(typeuc::PointerType) ) return checkEquivalent( ($typeuc)dst->sub, ($typeuc)src->sub );
+    if( dst->is(typeuc::CompositeType) ) return dst->sub == src->sub;
+    return true;
+}
+
+$tcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
     if( !dst or !src ) return nullptr;
     if( !determineDataType(dst) ) return nullptr;
     if( !determineDataType(src) ) return nullptr;
 
     if( dst->is(typeuc::CompositeType) ) {
         if( src->is(typeuc::CompositeType) ) {
-            if( dst->sub == src->sub ) return new dcp(Noneed,dst,src);
+            if( dst->sub == src->sub ) return new tcp(Noneed,dst,src);
             else {
                 /**
                  * [TODO]: 先搜索类型转换运算符重载再搜索
@@ -915,12 +924,12 @@ $dcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
     } else if( dst->is(typeuc::ConstraintedPointerType) ) {
 
     } else if( dst->id == src->id ) {
-        return new dcp(Noneed,dst,src);
+        return new tcp(Noneed,dst,src);
     } else {
 
     }
 
-    return true;
+    return nullptr;
 }
 
 Sengine::Sengine() {

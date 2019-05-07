@@ -131,6 +131,13 @@ class Sengine {
         map<$MethodImpl,$MethodDef> mmethodP;
 
         /**
+         * @member mtcd : 类型转换图
+         * @desc :
+         *  用于存放所有数据类型之间的转换关系
+         */
+        TypeConvertDiagram mtcd;
+
+        /**
          * @member flag_terminate : 终结标志
          * @desc :
          *  当分析了流控制语句,设置终结标志
@@ -354,8 +361,8 @@ class Sengine {
         /**
          * @method checkEquivalent : 检查类型等价性
          */
-        bool checkEquivalent( $eproto a, $eproto b, Situation s );
-        //bool checkEquivalent( $typeuc a, $typeuc b );
+        bool checkEquivalent( $eproto dst, $eproto src );
+        bool checkEquivalent( $typeuc dst, $typeuc src );
 
         /**
          * @method checkCompatibility : 检查数据类型兼容性
@@ -365,11 +372,11 @@ class Sengine {
          * @param dst : 目标数据类型
          * @param src : 源数据类型
          * @param s : 情况
-         * @return $dcp : 若检测失败,则返回空,否则返回路径链表头代理
+         * @return $tcp : 若检测失败,则返回空,否则返回路径链表头代理
          *  注意区分[不可转换]与[检测失败]两种情况的不同.
          */
-        $dcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
-        // $dcp checkCompatibility( $eproto dst, $eproto src, Situation s ); //[TODO]: 算法尚未确定
+        $tcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
+        // $tcp checkCompatibility( $eproto dst, $eproto src, Situation s ); //[TODO]: 算法尚未确定
     public:
 
         /**
