@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cctype>
+#include <stdexcept>
 
 namespace alioth {
 
@@ -881,19 +882,43 @@ Value* Sengine::requestThis( $implementation impl ) {
     return fp->arg_begin();
 }
 
-bool Sengine::checkEquivalent( $eproto a, $eproto b ) {
+bool Sengine::checkEquivalent( $eproto a, $eproto b, Situation s ) {
     if( !a or !b ) return false;
     if( (bool)a->cons xor (bool)b->cons ) return false;
     if( a->elmt != b->elmt ) return false;
-    return checkEquivalent( a->dtype, b->dtype );
+    auto dcp = checkCompatibility( a->dtype, b->dtype, s );
+    if( dcp and dcp->ca == Noneed ) return true;
+    else return false;
 }
 
-bool Sengine::checkEquivalent( $typeuc a, $typeuc b ) {
-    if( !a or !b ) return false;
-    if( !determineDataType(a) ) return false;
-    if( !determineDataType(b) ) return false;
-    if( a->id != b->id ) return false;
-    if( a->is(typeuc::CompositeType) ) return a->sub == b->sub;
+$dcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
+    if( !dst or !src ) return nullptr;
+    if( !determineDataType(dst) ) return nullptr;
+    if( !determineDataType(src) ) return nullptr;
+
+    if( dst->is(typeuc::CompositeType) ) {
+        if( src->is(typeuc::CompositeType) ) {
+            if( dst->sub == src->sub ) return new dcp(Noneed,dst,src);
+            else {
+                /**
+                 * [TODO]: 先搜索类型转换运算符重载再搜索
+                 */
+                throw runtime_error("function not supported yet");
+            }
+        } else {
+
+        }
+    } else if( src->is(typeuc::CompositeType) ) {
+
+    } else if( dst->is(typeuc::UnconstraintedPointerType) ) {
+
+    } else if( dst->is(typeuc::ConstraintedPointerType) ) {
+
+    } else if( dst->id == src->id ) {
+        return new dcp(Noneed,dst,src);
+    } else {
+
+    }
 
     return true;
 }

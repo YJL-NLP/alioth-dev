@@ -10,6 +10,7 @@
 #include "methodimpl.hpp"
 #include "branchimpl.hpp"
 #include "flowctrlimpl.hpp"
+#include "typeconvertdiagram.hpp"
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
@@ -38,6 +39,10 @@ class Sengine {
 
         /** 搜索语法树时,决定搜索滤镜 */
         enum Len{ ThisClass, SuperClass, NormalClass };
+
+        /** 检查数据类型兼容性时,判断场景 */
+        enum Situation{ Passing, Calculating, Returning };
+        
     public:
 
         /**
@@ -349,9 +354,22 @@ class Sengine {
         /**
          * @method checkEquivalent : 检查类型等价性
          */
-        bool checkEquivalent( $eproto a, $eproto b );
-        bool checkEquivalent( $typeuc a, $typeuc b );
+        bool checkEquivalent( $eproto a, $eproto b, Situation s );
+        //bool checkEquivalent( $typeuc a, $typeuc b );
 
+        /**
+         * @method checkCompatibility : 检查数据类型兼容性
+         * @desc :
+         *  在给定条件下,判断两种数据类型是否相互兼容,返回一条转换路径单链表
+         *  若中途出现其他错误,则返回空
+         * @param dst : 目标数据类型
+         * @param src : 源数据类型
+         * @param s : 情况
+         * @return $dcp : 若检测失败,则返回空,否则返回路径链表头代理
+         *  注意区分[不可转换]与[检测失败]两种情况的不同.
+         */
+        $dcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
+        // $dcp checkCompatibility( $eproto dst, $eproto src, Situation s ); //[TODO]: 算法尚未确定
     public:
 
         /**
