@@ -4,7 +4,6 @@
 #include "implementation.hpp"
 #include "insblockimpl.hpp"
 #include "morpheme.hpp"
-#include "constructimpl.hpp"
 
 namespace alioth {
 

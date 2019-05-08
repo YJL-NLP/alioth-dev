@@ -22,6 +22,14 @@ struct OperatorDef : public definition, public morpheme::plist {
         anything subtitle;
 
         /**
+         * @member rproto : 返回值元素原型
+         * @desc :
+         *  描述运算符的返回值元素原型
+         *  并不是所有的运算符都具有返回值，此时返回值原型是nullptr
+         */
+        $eproto rproto;
+
+        /**
          * @member revers : 反向重载
          * @desc :
          *  此标志与same冲突，表示此重载是一个反向重载

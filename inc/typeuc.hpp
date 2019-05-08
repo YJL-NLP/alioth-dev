@@ -20,44 +20,39 @@ using $ClassDef = agent<ClassDef>;
  */
 class typeuc : public thing {
 
+    private:
+        static const TypeID TypeIdBitH =                0x80'00'00'00'00'00'00'00;
+        static const TypeID TypeIdBitL =                0x00'00'00'00'00'00'00'01;
+
     public:
-        static const TypeID DeterminedType =            0x80'00'00'00'00'00'00'00;
+        static const TypeID DeterminedType =            (TypeIdBitH >> 0x00);
+        static const TypeID UndeterminedType =          (TypeIdBitH >> 0x01);
+        static const TypeID SimpleType =                (TypeIdBitH >> 0x02) | DeterminedType;
+        static const TypeID PointerType =               (TypeIdBitH >> 0x03) | SimpleType;
+        static const TypeID BasicType =                 (TypeIdBitH >> 0x04) | SimpleType;
+        static const TypeID IntegerType =               (TypeIdBitH >> 0x05) | BasicType;
+        static const TypeID FloatPointType =            (TypeIdBitH >> 0x06) | BasicType;
+        static const TypeID UnsignedIntegerType =       (TypeIdBitH >> 0x07) | IntegerType;
+        static const TypeID SignedIntegerType =         (TypeIdBitH >> 0x08) | IntegerType;
 
-        static const TypeID UndeterminedType =          0x40'00'00'00'00'00'00'00;
-
-        static const TypeID UnknownType =               0x00'00'00'00'00'00'00'01 | UndeterminedType;           /** terminate */
-        static const TypeID NamedType =                 0x00'00'00'00'00'00'00'02 | UndeterminedType;           /** terminate */
-        static const TypeID UnsolvableType =            0x00'00'00'00'00'00'00'04 | UndeterminedType;           /** terminate */
-
-        static const TypeID PointerType =               0x20'00'00'00'00'00'00'00 | DeterminedType;
-        static const TypeID BasicType =                 0x10'00'00'00'00'00'00'00 | DeterminedType;
-
-        static const TypeID CompositeType =             0x00'00'00'00'00'00'00'08 | DeterminedType;             /** terminate */
-
-        static const TypeID ConstraintedPointerType =   0x00'00'00'00'00'00'00'10 | PointerType;                /** terminate */
-        static const TypeID UnconstraintedPointerType = 0x00'00'00'00'00'00'00'20 | PointerType;                /** terminate */
-
-        static const TypeID IntegerType =               0x08'00'00'00'00'00'00'00 | BasicType;
-        static const TypeID FloatPointType =            0x04'00'00'00'00'00'00'00 | BasicType;
-        static const TypeID VoidType =                  0x00'00'00'00'00'00'00'40 | BasicType;                  /** terminate */
-        static const TypeID BooleanType =               0x00'00'00'00'00'00'00'80 | BasicType;                  /** terminate */
-
-        static const TypeID UnsignedIntegerType =       0x02'00'00'00'00'00'00'00 | IntegerType;
-        static const TypeID SignedIntegerType =         0x01'00'00'00'00'00'00'00 | IntegerType;
-
-        static const TypeID Uint8 =                     0x00'00'00'00'00'00'01'00 | UnsignedIntegerType;        /** terminate */
-        static const TypeID Uint16 =                    0x00'00'00'00'00'00'02'00 | UnsignedIntegerType;        /** terminate */
-        static const TypeID Uint32 =                    0x00'00'00'00'00'00'04'00 | UnsignedIntegerType;        /** terminate */
-        static const TypeID Uint64 =                    0x00'00'00'00'00'00'08'00 | UnsignedIntegerType;        /** terminate */
-
-        static const TypeID Int8 =                      0x00'00'00'00'00'00'10'00 | SignedIntegerType;          /** terminate */
-        static const TypeID Int16 =                     0x00'00'00'00'00'00'20'00 | SignedIntegerType;          /** terminate */
-        static const TypeID Int32 =                     0x00'00'00'00'00'00'40'00 | SignedIntegerType;          /** terminate */
-        static const TypeID Int64 =                     0x00'00'00'00'00'00'80'00 | SignedIntegerType;          /** terminate */
-
-        static const TypeID Float32 =                   0x00'00'00'00'00'01'00'00 | FloatPointType;             /** terminate */
-        static const TypeID Float64 =                   0x00'00'00'00'00'02'00'00 | FloatPointType;             /** terminate */
-
+        static const TypeID UnknownType =               (TypeIdBitL << 0x00) | UndeterminedType;
+        static const TypeID NamedType =                 (TypeIdBitL << 0x01) | UndeterminedType;
+        static const TypeID UnsolvableType =            (TypeIdBitL << 0x02) | UndeterminedType;
+        static const TypeID CompositeType =             (TypeIdBitL << 0x03) | DeterminedType;
+        static const TypeID ConstraintedPointerType =   (TypeIdBitL << 0x04) | PointerType;
+        static const TypeID UnconstraintedPointerType = (TypeIdBitL << 0x05) | PointerType;
+        static const TypeID VoidType =                  (TypeIdBitL << 0x06) | BasicType;
+        static const TypeID BooleanType =               (TypeIdBitL << 0x07) | BasicType;
+        static const TypeID Uint8 =                     (TypeIdBitL << 0x08) | UnsignedIntegerType;
+        static const TypeID Uint16 =                    (TypeIdBitL << 0x09) | UnsignedIntegerType;
+        static const TypeID Uint32 =                    (TypeIdBitL << 0x0a) | UnsignedIntegerType;
+        static const TypeID Uint64 =                    (TypeIdBitL << 0x0b) | UnsignedIntegerType;
+        static const TypeID Int8 =                      (TypeIdBitL << 0x0c) | SignedIntegerType;
+        static const TypeID Int16 =                     (TypeIdBitL << 0x0d) | SignedIntegerType;
+        static const TypeID Int32 =                     (TypeIdBitL << 0x0e) | SignedIntegerType;
+        static const TypeID Int64 =                     (TypeIdBitL << 0x0f) | SignedIntegerType;
+        static const TypeID Float32 =                   (TypeIdBitL << 0x10) | FloatPointType;
+        static const TypeID Float64 =                   (TypeIdBitL << 0x11) | FloatPointType;
     public:
         TypeID id;
         nameuc name;

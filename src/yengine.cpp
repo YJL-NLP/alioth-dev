@@ -161,7 +161,7 @@ $ConstructImpl Yengine::constructParameterDefinition( tokens::iterator& it, Leng
                 return nullptr;
             } break;
         case 2:
-            if( it->is(VN::DATTYPE) ) {
+            if( it->is(VN::TYPEUC) ) {
                 stack.redu(2,VN::PARAM);
             } else if( auto dt = constructDataType(it,log,sc,true); dt ) {
                 if( dt->is(typeuc::UnknownType) and et == UDF ) {
@@ -205,7 +205,7 @@ $ConstructImpl Yengine::constructParameterImplementation( tokens::iterator& it, 
                 return nullptr;
             } break;
         case 2:
-            if( it->is(VN::DATTYPE) ) {
+            if( it->is(VN::TYPEUC) ) {
                 stack.redu(2,VN::PARAM);
             } else if( auto dt = constructDataType(it,log,sc,true); dt ) {
                 if( dt->is(typeuc::UnknownType) and et == UDF ) {
@@ -316,15 +316,15 @@ $typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $s
                 stack.movi(2);
             } else if( it->is(CT::BASIC_TYPE) ) {
                 ret = typeuc::GetBasicDataType(it->id);
-                stack.redu(1,VN::DATTYPE);
+                stack.redu(1,VN::TYPEUC);
             } else if( it->is(VT::LABEL) ) {
                 ret->name = constructNameUseCase(it,log,sc,absorb);
                 if( !ret->name ) return nullptr;
                 ret->id = typeuc::NamedType;
-                stack.redu(1,VN::DATTYPE);
+                stack.redu(1,VN::TYPEUC);
             } else {
                 ret->id = typeuc::UnknownType;
-                stack.redu(-1,VN::DATTYPE);
+                stack.redu(-1,VN::TYPEUC);
             } break;
         case 2:
             if( auto dt = constructDataType(it, log, sc, absorb); !dt ) {
@@ -334,7 +334,7 @@ $typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $s
                 return nullptr;
             } else {
                 ret->sub = dt;
-                stack.redu(2,VN::DATTYPE);
+                stack.redu(2,VN::TYPEUC);
             } break;
     }
 
@@ -371,7 +371,7 @@ $eproto Yengine::constructElementPrototype( tokens::iterator& it, Lengine::logs&
                     log(Lengine::E502,*it);
                     return nullptr;
                 }
-            } else if( it->is(VN::DATTYPE) ) {
+            } else if( it->is(VN::TYPEUC) ) {
                 stack.redu(1,VN::PROTO);
             } else {
                 ret->dtype = constructDataType(it,log,sc,absorb);
@@ -826,7 +826,7 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
                 return nullptr;
             } break;
         case 7:
-            if (it->is(VN::DATTYPE)) {
+            if (it->is(VN::TYPEUC)) {
                 stack.redu(4, VN::CLASS);
             } else if (auto alia = constructNameUseCase(it,log,scope,true); alia) {
                 ret->alias = move(alia);
@@ -894,7 +894,7 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
                     log(Lengine::E1005,*(it+1));
                     return nullptr;
                 }
-            } else if( it->is(VN::DATTYPE) ) {
+            } else if( it->is(VN::TYPEUC) ) {
                 stack.redu(2,VN::EXPRESSION);
             } else {
                 log(Lengine::E1005,*it);
@@ -1436,7 +1436,7 @@ $ConstructImpl Yengine::constructConstructImplementation( tokens::iterator& it, 
                 return nullptr;
             } break;
         case 3:
-            if( it->is(VN::DATTYPE) ) {
+            if( it->is(VN::TYPEUC) ) {
                 stack.stay();
             } else if( it->is(VT::ASSIGN) ) {
                 if( !ret->proto ) {

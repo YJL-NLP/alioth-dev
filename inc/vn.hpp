@@ -28,7 +28,7 @@ enum class VN {
     PARAM_LIST,
     FINAL_PARAM,
 
-    DATTYPE,
+    TYPEUC,
     CONST,
     PROTO,
 
@@ -45,8 +45,6 @@ enum class VN {
     CLASS_BASE_CLASSES,
     CLASS_LAYOUT_ITEM,
     CLASS_PREDICATE,
-    
-    // ELEMENT,
 };
 
 }

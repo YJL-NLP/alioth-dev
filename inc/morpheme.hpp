@@ -6,6 +6,7 @@
 #include "expressionimpl.hpp"
 #include "definition.hpp"
 #include "constructimpl.hpp"
+#include <map>
 
 /**
  * @namespace morpheme : 语素
@@ -111,6 +112,16 @@ struct plist : public ConstructImpls {
          *  其他情况,视为方法不支持可变参数
          */
         token vargs;
+};
+
+struct ctor : public map<token,$ExpressionImpl> {
+    public:
+        /**
+         * @member post : 后置过程
+         * @desc :
+         *  构造之后需要进行的过程。
+         */
+        $InsBlockImpl post;
 };
 
 }
