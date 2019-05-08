@@ -3,9 +3,10 @@
 
 #include "node.hpp"
 #include "eproto.hpp"
-#include "expressionimpl.hpp"
 #include "definition.hpp"
+#include "insblockimpl.hpp"
 #include "constructimpl.hpp"
+#include "expressionimpl.hpp"
 #include <map>
 
 /**
@@ -116,6 +117,13 @@ struct plist : public ConstructImpls {
 
 struct ctor : public map<token,$ExpressionImpl> {
     public:
+        /**
+         * @member bctor : 基类构造表达式
+         * @desc :
+         *  指定预先调用基类构造运算符时使用的构造表达式
+         */
+        chainz<$ExpressionImpl> bctor;
+
         /**
          * @member post : 后置过程
          * @desc :
