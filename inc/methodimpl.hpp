@@ -18,11 +18,18 @@ struct MethodImpl : public implementation, public morpheme::plist {
     public:
 
         /**
-         * @member funame : 方法全名
+         * @member cname : 方法宿主类名
          * @desc :
-         *  方法全名用于将方法实体与方法定义关联在一起
+         *  宿主类名用于锚定方法的宿主类型定义
          */
-        nameuc funame;
+        nameuc cname;
+
+        /**
+         * @member name : 方法名
+         * @desc :
+         *  方法名与方法定义中的名称对应
+         */
+        token name;
 
         /**
          * @member rproto : 返回值元素原型

@@ -17,11 +17,18 @@ struct OperatorImpl : public implementation, public morpheme::plist {
     public:
 
         /**
-         * @member master : 宿主类型
+         * @member cname : 宿主类名
          * @desc :
          *  运算符宿主的数据类型
          */
-        nameuc master;
+        nameuc cname;
+
+        /**
+         * @member name : 运算符标签
+         * @desc :
+         *  运算符标签确定运算符的结构
+         */
+        token name;
 
         /**
          * @member subtitle : 副标题

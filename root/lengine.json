@@ -180,7 +180,7 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "token '>' needed to indicate method name"
+            "msg" : "method name needed but '%R0' got"
         },"311" : {
             "sev" : 1,
             "beg" : "b0",

@@ -1,6 +1,6 @@
 module iTalk entry main
 
-method iTalk::main( argc int32, argv **int8 ) int32 {
+method iTalk main( argc int32, argv **int8 ) int32 {
 
     addr.CreateLocalHost( 31262 );
     brod.CreateBroadCast( 31262 );
@@ -30,7 +30,7 @@ ready to go!
 }
 
 
-method iTalk::display( data *int8, ref addr SockAddr ) nil {
+method iTalk display( data *int8, ref addr SockAddr ) nil {
     ptr ads = memory.alloc( 16 );
     obj adp = 0;
 

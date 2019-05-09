@@ -156,7 +156,7 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
 
     auto def = requestPrototype(($implementation)method);
     if( !def ) {
-        mlogrepo(method->getDocPath())(Lengine::E2029,method->funame.phrase);
+        mlogrepo(method->getDocPath())(Lengine::E2029,method->name);
         return false;
     }
 
@@ -710,7 +710,8 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
     }
 
     if( auto impl = ($MethodImpl)n; impl ) {
-        for( int i = impl->funame.size()-1; i >= 0; i-- ) domain = "." + (string)impl->funame[i].name + domain;
+        for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
+        domain += "." + (string)impl->name;
     }
     for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + (string)def->name + domain;
     
@@ -842,7 +843,7 @@ $ClassDef Sengine::requestThisClass( $implementation impl ) {
     auto method = ($MethodImpl)impl;
     if( mmethodP.count(method) ) return mmethodP[method]->getScope();
 
-    auto eve = request(method->funame/1, NormalClass);
+    auto eve = request(method->cname, NormalClass);
     if( eve.size() != 1 ) return nullptr;
 
     return ($ClassDef)eve[0];
@@ -857,7 +858,7 @@ $MethodDef Sengine::requestPrototype( $implementation impl ) {
     
     auto scope = requestThisClass(($implementation)met);
     if( !scope ) return nullptr;
-    auto sname = (string)met->funame[-1].name;
+    auto sname = (string)met->name;
 
     for( auto def : scope->instdefs + scope->metadefs ) if( auto mdef = ($MethodDef)def; mdef and (string)mdef->name == sname ) {
         auto arg = met->begin();

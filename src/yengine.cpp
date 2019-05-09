@@ -582,12 +582,8 @@ $MethodImpl Yengine::constructMethodImplementation( tokens::iterator& it, Lengin
                 ret->constraint = *it;
                 stack.stay(1);
             } else if( it->is(VT::LABEL) ) {
-                ret->funame = constructNameUseCase( it, log, scope, true );
-                if( !ret->funame ) return nullptr;
-                if( ret->funame[-1].tmpl.size() > 0 ) {
-                    log(Lengine::E310,*it);
-                    return nullptr;
-                }
+                ret->cname = constructNameUseCase( it, log, scope, true );
+                if( !ret->cname ) return nullptr;
             } else if( it->is(VN::NAMEUC) ) {
                 stack.movi(3);
             } else {
@@ -595,34 +591,42 @@ $MethodImpl Yengine::constructMethodImplementation( tokens::iterator& it, Lengin
                 return nullptr;
             } break;
         case 3:
+            if( it->is(VT::LABEL) ) {
+                ret->name = *it;
+                stack.movi(4);
+            } else {
+                log(Lengine::E310,*it);
+                return nullptr;
+            } break;
+        case 4:
             if( it->is(VT::OPENA) ) {
                 auto args = constructParameterList(it,log,ret,*ret);
                 if( !args ) return nullptr;
             } else if( it->is(VN::PARAM_LIST) ) {
-                stack.movi(4);
+                stack.movi(5);
             } else {
                 log(Lengine::E305,*it);
                 return nullptr;
             } break;
-        case 4:
+        case 5:
             if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return nullptr;
             } else if( it->is(VT::NIL) ) {
                 stack.redu(0,VN::PROTO);
             } else if( it->is(VN::PROTO) ) {
-                stack.movi(5);
+                stack.movi(6);
             } else if( auto proto = constructElementPrototype(it,log,ret,true); proto ) {
                 ret->rproto = move(proto);
             } else {
                 return nullptr;
             } break;
-        case 5:
+        case 6:
             if( it->is(VT::OPENS) ) {
                 ret->body = constructInstructionBlockImplementation( it, log, ret );
                 if( !ret->body ) return nullptr;
             } else if( it->is(VN::BLOCK) ) {
-                stack.redu(5,VN::METHOD);
+                stack.redu(6,VN::METHOD);
             } else {
                 log(Lengine::E312,*it);
                 return nullptr;
