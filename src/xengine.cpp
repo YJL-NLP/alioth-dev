@@ -145,7 +145,6 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else if( pre == 's' ) state = 32;
             else if( pre == 't' ) state = 33;
             else if( pre == 'u' ) state = 34;
-            else if( pre == 'v' ) state = 36;
             else if( islabelb(pre) ) state = 4;
             else if( pre == '~' ) check(VT::bREV,true);
             else if( pre == '!' ) state = 57;//assign(VT::NE,VT::FORCE);
@@ -327,7 +326,8 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else check(VT::LABEL,false);
             break;
         case 28:
-            if( pre == 'r' ) test(VT::OR,1);
+            if( pre == 'b' ) state = 36;
+            else if( pre == 'r' ) test(VT::OR,1);
             else if( pre == 't' ) test(VT::OTHERWISE,1);
             else if( pre == 'p' ) test(VT::OPERATOR,1);
             else if( islabel(pre) ) state = 4;
@@ -347,6 +347,7 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             break;
         case 31:
             if( pre == 'f' ) test(VT::REF,2);
+            else if( pre == 'l' ) test(VT::REL,2);
             else if( pre == 't' ) test(VT::RETURN,2);
             else if( islabel(pre) ) state = 4;
             else check(VT::LABEL,false);
@@ -376,15 +377,12 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else check(VT::LABEL,false);
             break;
         case 36:
-            if( pre == 'a' ) state = 37;
+            if( pre == 'j' ) test(VT::OBJ,2);
             else if( islabel(pre) ) state = 4;
             else check(VT::LABEL,false);
             break;
         case 37:
-            if( pre == 'r' ) test(VT::VAR,2);
-            else if( pre == 'l' ) test(VT::VAL,2);
-            else if( islabel(pre) ) state = 4;
-            else check(VT::LABEL,false);
+            /** 由于词法规则改变而空闲的状态 */
             break;
         case 38:
             if( pre == '-' ) check(VT::DECRESS,true);
@@ -501,10 +499,10 @@ void Xengine::init() {
 
         __table[(int)VT::MODULE] = "module";
         __table[(int)VT::ENTRY] = "entry";
-        __table[(int)VT::VAR] = "var";
+        __table[(int)VT::OBJ] = "obj";
         __table[(int)VT::PTR] = "ptr";
         __table[(int)VT::REF] = "ref";
-        __table[(int)VT::VAL] = "val";
+        __table[(int)VT::REL] = "rel";
         __table[(int)VT::METHOD] = "method";
         __table[(int)VT::CLASS] = "class";
         __table[(int)VT::ENUM] = "enum";
