@@ -11,7 +11,7 @@ $eproto eproto::MakeUp( $scope scope, etype tele, $typeuc tdat, const token& fco
     ret->phrase = tdat->phrase;
     ret->cons = fconst;
     ret->dtype = tdat;
-    ret->elmt = tele==UDF?tdat->is(typeuc::PointerType)?PTR:VAR:tele;
+    ret->elmt = tele==UDF?tdat->is(typeuc::PointerType)?PTR:OBJ:tele;
     ret->setScope(scope);
     return ret;
 }

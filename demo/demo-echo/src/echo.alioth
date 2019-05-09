@@ -6,7 +6,7 @@ class echo {
 
 method echo::talk( argc int32, argv **int8 ) int32 {
 
-    var i = 1;
+    obj i = 1;
     loop( i < argc ) {
         io.print(argv[i]);
         io.print(" ");

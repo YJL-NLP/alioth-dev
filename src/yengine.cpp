@@ -232,14 +232,14 @@ $AttrDef Yengine::constructAttributeDefinition( tokens::iterator& it, Lengine::l
     $typeuc dty;
     token   con;
     
-    if(it->is(VT::VAR)) {
-        ety = VAR;
+    if(it->is(VT::OBJ)) {
+        ety = OBJ;
     } else if(it->is(VT::PTR)) {
         ety = PTR;
     } else if(it->is(VT::REF)) {
         ety = REF;
-    } else if(it->is(VT::VAL)) {
-        ety = VAL;
+    } else if(it->is(VT::REL)) {
+        ety = REL;
     } else{
         log(Lengine::E4,*it);
         return nullptr;
@@ -347,14 +347,14 @@ $eproto Yengine::constructElementPrototype( tokens::iterator& it, Lengine::logs&
     smachine stack = smachine(it);
     $eproto ret = new eproto;
     
-    if( it->is(VT::VAR) ) {
-        ret->elmt = VAR;
+    if( it->is(VT::OBJ) ) {
+        ret->elmt = OBJ;
     } else if( it->is(VT::PTR) ) {
         ret->elmt = PTR;
     } else if( it->is(VT::REF) ) {
         ret->elmt = REF;
-    } else if( it->is(VT::VAL) ) {
-        ret->elmt = VAL;
+    } else if( it->is(VT::REL) ) {
+        ret->elmt = REL;
     } else {
         it.r.insert(*it,it.pos);
         it->id = VT::SPACE;
@@ -605,7 +605,7 @@ $MethodImpl Yengine::constructMethodImplementation( tokens::iterator& it, Lengin
                 return nullptr;
             } break;
         case 4:
-            if( it->is(VT::VAR) ) {
+            if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return nullptr;
             } else if( it->is(VT::NIL) ) {
@@ -871,7 +871,7 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
             } break;
         case 10:case 11:
             if( it->is(CT::ELETYPE) ) {
-                ret->predicates[-1][-1].rule = (int)it->id - (int)VT::VAR;
+                ret->predicates[-1][-1].rule = (int)it->id - (int)VT::OBJ;
                 ret->predicates[-1][-1].rule += ((int)(state)stack - 10)?5:1;
                 stack.redu(2,VN::EXPRESSION);
             } else {
@@ -879,8 +879,8 @@ $ClassDef Yengine::constructClassDefinition( tokens::iterator& it, Lengine::logs
                 return nullptr;
             } break;
         case 12:
-            if( it->is(VT::VAR,VT::PTR) ) {
-                ret->predicates[-1][-1].rule = 9 + (int)it->id - (int)VT::VAR;
+            if( it->is(VT::OBJ,VT::PTR) ) {
+                ret->predicates[-1][-1].rule = 9 + (int)it->id - (int)VT::OBJ;
                 stack.redu(2,VN::EXPRESSION);
             } else {
                 log(Lengine::E1006,*it);
@@ -1036,7 +1036,7 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
         case 3:
             if( it->is(VN::PROTO) ) {
                 stack.movi(4);
-            } else if( it->is(VT::VAR) ) {
+            } else if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return  nullptr;
             } else if( it->is(VT::NIL) ) {

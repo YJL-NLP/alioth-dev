@@ -112,7 +112,7 @@ bool token::is( CT v )const {
             );
         case CT::ELETYPE:
             return is(
-                VT::VAR,VT::PTR,VT::REF,VT::VAL
+                VT::OBJ,VT::PTR,VT::REF,VT::REL
             );
         case CT::IMPLEMENTATION:
             return is(

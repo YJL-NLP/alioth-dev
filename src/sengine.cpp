@@ -167,7 +167,7 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     for( auto par : *method ) {
         arg += 1;
         arg->setName( (string)par->name );
-        if( par->proto->elmt == VAR and par->proto->dtype->is(typeuc::NamedType) ) {
+        if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::NamedType) ) {
             mlocalV[par] = arg;
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
@@ -347,7 +347,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 builder.getInt32(i),
                 eproto::MakeUp(
                     impl->getScope(),
-                    VAR,
+                    OBJ,
                     typeuc::GetBasicDataType(VT::INT32)
                 )
             );
@@ -399,24 +399,24 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
             $eproto proto;
             switch( impl->mean.id ) {
                 default: break;
-                case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
 
-                case VT::AND: rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::OR:  rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),VAR,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::AND: rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                case VT::OR:  rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
 
-                case VT::PLUS:  rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MINUS: rv = builder.CreateSub(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MUL:   rv = builder.CreateMul(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::DIV:   rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::bAND:  rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::bOR:   rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::bXOR:  rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), VAR, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::PLUS:  rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::MINUS: rv = builder.CreateSub(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::MUL:   rv = builder.CreateMul(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::DIV:   rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::bAND:  rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::bOR:   rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::bXOR:  rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
 
                 case VT::ASSIGN: builder.CreateStore(right->asobject(builder),left->asaddress(builder));return left;
                 case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
@@ -447,7 +447,7 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                     rv = builder.CreateLoad(rv);
                     auto proto = operand->eproto();
                     proto->dtype = proto->dtype->sub;
-                    if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = VAR;
+                    if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
                     return imm::object(rv,proto);
                 }
             }
@@ -468,7 +468,7 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                 case VT::MUL: {
                     auto proto = right->eproto();
                     proto->dtype = proto->dtype->sub;
-                    if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = VAR;
+                    if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
                     return imm::object(builder.CreateLoad(right->asobject(builder)),proto);
                 }
                 case VT::NOT: {
@@ -572,7 +572,7 @@ bool Sengine::performImplementationSemanticValidation( $LoopImpl impl ,IRBuilder
 }
 
 Type* Sengine::performDefinitionSemanticValidation( $AttrDef attr ) {
-    /** 语法阶段好像对此有所检查,记不清了 if( attr->proto->elmt == VAL ) { ... } */
+    /** 语法阶段好像对此有所检查,记不清了 if( attr->proto->elmt == REL ) { ... } */
     return generateTypeUsageAsAttribute(attr->proto);
 }
 
@@ -581,7 +581,7 @@ Type* Sengine::generateTypeUsageAsParameter( $eproto proto ) {
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-    if( proto->elmt == VAL or proto->elmt == REF or proto->elmt == VAR and ty->isStructTy() ) {
+    if( proto->elmt == REL or proto->elmt == REF or proto->elmt == OBJ and ty->isStructTy() ) {
         ty = ty->getPointerTo();
     }
 
@@ -593,7 +593,7 @@ Type* Sengine::generateTypeUsageAsAttribute( $eproto proto ) {
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-    if( proto->elmt == VAL or proto->elmt == REF )
+    if( proto->elmt == REL or proto->elmt == REF )
         ty = ty->getPointerTo();
 
     return ty;
@@ -670,10 +670,10 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         suffix += ".";
         if( pd->proto->cons ) suffix += "C";
         switch( pd->proto->elmt ) {
-            case VAR : suffix += "V";break;
+            case OBJ : suffix += "V";break;
             case PTR : suffix += "P";break;
             case REF : suffix += "R";break;
-            case VAL : suffix += "L";break;
+            case REL : suffix += "L";break;
             case UDF : suffix += "X";break;
         }
 
@@ -1051,7 +1051,7 @@ Sengine::ModuleTrnsUnit Sengine::performImplementationSemanticValidation( $modes
 
     if( mod->es ) {
         auto res = request(mod->es->entry,NormalClass,mod);
-        auto int32 = eproto::MakeUp(mod,VAR,typeuc::GetBasicDataType(VT::INT32),{});
+        auto int32 = eproto::MakeUp(mod,OBJ,typeuc::GetBasicDataType(VT::INT32),{});
         auto int8p = eproto::MakeUp(mod,PTR,typeuc::GetBasicDataType(VT::INT8)->getPointerTo()->getPointerTo());
         bool found = false;
 

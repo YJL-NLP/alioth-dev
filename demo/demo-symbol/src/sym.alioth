@@ -1,7 +1,7 @@
 module Sym
 
 class Sym {
-    var met int32
+    obj met int32
 
     method met( x int32 ) nil
     method zzz() nil

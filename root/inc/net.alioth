@@ -9,12 +9,12 @@ class SockAddr {
     /**
      * @member addr : 描述一个IPv4地址,网络字节顺序
      */
-    var public addr int32
+    obj public addr int32
 
     /**
      * @member port : 描述一个端口号,网络字节顺序
      */
-    var public port int16
+    obj public port int16
 
     /**
      * @method CreateLocalHost: 构造一个socket地址
@@ -45,7 +45,7 @@ class Socket {
     /**
      *@member soc : 套接字实际文件描述符
      */
-    var soc int32
+    obj soc int32
 
     /**
      * @method sendTo : 发送数据

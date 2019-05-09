@@ -210,7 +210,7 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "pointer type cannot be used by element VAR"
+            "msg" : "pointer type cannot be used by element OBJ"
         },"504" : {
             "sev" : 1,
             "beg" : "b0",
@@ -265,7 +265,7 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "element type of class member cannot be VAL"
+            "msg" : "element type of class member cannot be REL"
         },"1001" : {
             "sev" :1,
             "beg" : "b0",
@@ -295,7 +295,7 @@
             "sev" :1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "'ptr' or 'var' needed but '%R0' got "
+            "msg" : "'ptr' or 'obj' needed but '%R0' got "
         },"1007" : {
             "sev" :1,
             "beg" : "b0",

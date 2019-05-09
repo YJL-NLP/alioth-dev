@@ -2,7 +2,7 @@ module io
 
 class io {
 
-    var meta met int32
+    obj meta met int32
 
     /**
      * @method println : 打印并换行

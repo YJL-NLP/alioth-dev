@@ -23,10 +23,10 @@ using $ClassDef = agent<ClassDef>;
  */
 enum etype {
     UDF = (int)VT::SPACE,   //UDF用于没有指定元素类型的情况,根据数据类型可能被修正为其他类型
-    VAR = (int)VT::VAR,
+    OBJ = (int)VT::OBJ,
     PTR = (int)VT::PTR,
     REF = (int)VT::REF,
-    VAL = (int)VT::VAL,
+    REL = (int)VT::REL,
 };
 
 /**

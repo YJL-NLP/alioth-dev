@@ -6,7 +6,7 @@ method iTalk::main( argc int32, argv **int8 ) int32 {
     brod.CreateBroadCast( 31262 );
     peer.Create( addr );
     ptr buf = memory.alloc( 1024 );
-    var cnt = 0;
+    obj cnt = 0;
 
     io.nblock();
     io.println("
@@ -32,7 +32,7 @@ ready to go!
 
 method iTalk::display( data *int8, ref addr SockAddr ) nil {
     ptr ads = memory.alloc( 16 );
-    var adp = 0;
+    obj adp = 0;
 
     addr.toReadable( ads, &adp );
     io.print( "message received from \x1b[1;36m" );

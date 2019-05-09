@@ -7,9 +7,9 @@ module iTalk :
 
 class iTalk {
 
-    var addr SockAddr
-    var brod SockAddr
-    var peer Socket
+    obj addr SockAddr
+    obj brod SockAddr
+    obj peer Socket
 
     /**
      * @method main : 入口方法

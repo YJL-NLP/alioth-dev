@@ -30,7 +30,7 @@ Value* imm::asobject( IRBuilder<>& builder )const {
         case val: {
             auto proto = ($eproto)p;
             if( !proto ) return nullptr;
-            if( proto->elmt == REF or proto->elmt == VAL ) ret = builder.CreateLoad(ret);
+            if( proto->elmt == REF or proto->elmt == REL ) ret = builder.CreateLoad(ret);
             return ret;
         } 
     }
@@ -43,10 +43,10 @@ Value* imm::asaddress( IRBuilder<>& builder )const {
         default: return nullptr;
         case ety: return v;
         case val:
-            if( proto->elmt == REF or proto->elmt == VAL ) return v;
+            if( proto->elmt == REF or proto->elmt == REL ) return v;
             else return nullptr;
         case adr:
-            if( proto->elmt == REF or proto->elmt == VAL ) return builder.CreateLoad(v);
+            if( proto->elmt == REF or proto->elmt == REL ) return builder.CreateLoad(v);
             else return v;
     }
 }
@@ -58,7 +58,7 @@ Value* imm::asparameter( IRBuilder<>& builder, $eproto req )const {
         default: return nullptr;
         case ety:case val: return v;
         case adr: 
-            if( proto->elmt == VAR and proto->dtype->is(typeuc::CompositeType) ) return v;
+            if( proto->elmt == OBJ and proto->dtype->is(typeuc::CompositeType) ) return v;
             else return builder.CreateLoad(v);
     }
 }

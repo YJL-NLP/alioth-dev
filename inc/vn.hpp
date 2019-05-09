@@ -18,10 +18,6 @@ enum class VN {
     METHOD,
     CLASS,
     ENUM,
-    VAR,
-    PTR,
-    REF,
-    VAL,
 
     PARAM,
     COMMA_PARAM,
