@@ -7,7 +7,7 @@ class Sym {
     method zzz() nil
 }
 
-method Sym::met( x int32 ) nil {
+method Sym met( x int32 ) nil {
     zzz();
     return;
 }

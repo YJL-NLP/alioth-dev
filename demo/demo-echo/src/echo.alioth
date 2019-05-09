@@ -4,7 +4,7 @@ class echo {
     method talk( argc int32, argv **int8 ) int32
 }
 
-method echo::talk( argc int32, argv **int8 ) int32 {
+method echo talk( argc int32, argv **int8 ) int32 {
 
     obj i = 1;
     loop( i < argc ) {

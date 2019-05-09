@@ -4,7 +4,7 @@ class Fac {
     method main( argc int32, argv **int8 ) int32
 }
 
-method Fac::main( argc int32, argv **int8 ) int32 {
+method Fac main( argc int32, argv **int8 ) int32 {
     ptr buf = memory.alloc(32);
     obj i = 1;
     obj x = 1;
