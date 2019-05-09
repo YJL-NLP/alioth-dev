@@ -17,9 +17,9 @@
 namespace alioth {
 
 #define __alioth_ver__  std::tuple<int,int>(0,8)
-#define __alioth_ver_str__ "0.8"
-#define __aliothc_ver__ std::tuple<int,int>(0,1)
-#define __aliothc_ver_str__ "0.1"
+#define __alioth_ver_str__ "0.9"
+#define __aliothc_ver__ std::tuple<int,int,int>(0,2,0)
+#define __aliothc_ver_str__ "0.2.0"
 
 /**
  * @function null : 检查指针是否为空

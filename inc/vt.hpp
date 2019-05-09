@@ -19,10 +19,10 @@ enum class VT {
     ENTRY,               //入口声明
 
     /*元素关键字*/
-    VAR,                 //变量
+    OBJ,                 //对象
     PTR,                 //指针
     REF,                 //引用
-    VAL,                 //右值引用
+    REL,                 //重载
     
     METHOD,              //方法
     CLASS,               //类
