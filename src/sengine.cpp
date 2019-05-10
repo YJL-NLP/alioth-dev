@@ -232,21 +232,21 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
     }
 }
 
-$imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRBuilder<>& builder ) {
+$imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( !impl or flag_terminate ) return nullptr;
     switch( impl->type ) {
         default: return nullptr;
-        case ExpressionImpl::NAMEUSAGE: if( auto s = processNameusageExpression( impl, builder ); s.size() ) return s[0]; else return nullptr;
-        case ExpressionImpl::MEMBER: if( auto s = processMemberExpression( impl, builder ); s.size() ) return s[0]; else return nullptr;
-        case ExpressionImpl::VALUE: return processValueExpression( impl, builder );
-        case ExpressionImpl::INFIX: return processCalcExpression( impl, builder );
-        case ExpressionImpl::SUFFIX: return processCalcExpression( impl, builder );
-        case ExpressionImpl::PREFIX: return processCalcExpression( impl, builder );
-        case ExpressionImpl::CALL: return processCallExpression( impl, builder );
+        case ExpressionImpl::NAMEUSAGE: if( auto s = processNameusageExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
+        case ExpressionImpl::MEMBER: if( auto s = processMemberExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
+        case ExpressionImpl::VALUE: return processValueExpression( impl, builder, pos );
+        case ExpressionImpl::INFIX: return processCalcExpression( impl, builder, pos );
+        case ExpressionImpl::SUFFIX: return processCalcExpression( impl, builder, pos );
+        case ExpressionImpl::PREFIX: return processCalcExpression( impl, builder, pos );
+        case ExpressionImpl::CALL: return processCallExpression( impl, builder, pos );
     }
 }
 
-imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder ) {
+imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::NAMEUSAGE ) return {};
 
     imms ret;
@@ -296,7 +296,7 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
     return ret;
 }
 
-imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder ) {
+imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::MEMBER ) return {};
 
     imms ret;
@@ -337,7 +337,7 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
     return ret;
 }
 
-$imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder ) {
+$imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::VALUE ) return nullptr;
     switch( impl->mean.id ) {
         case VT::iINTEGERn: { // 限制10进制数字只能32位
@@ -366,7 +366,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
     }
 }
 
-$imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder ) {
+$imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::CALL ) return nullptr;
 
     std::vector<Value*> args;
@@ -388,7 +388,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     return imm::object(builder.CreateCall(fp->asfunction(),args),fp->prototype()->rproto);  //[FIXME]object存疑
 }
 
-$imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder ) {
+$imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
 
     switch( impl->type ) {
         case ExpressionImpl::INFIX: {
