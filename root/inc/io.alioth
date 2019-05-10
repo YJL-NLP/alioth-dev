@@ -34,6 +34,6 @@ class io {
      */
     method public getline( str *int8, max int32 ) int32
 
-    method public block() nil
-    method public nblock() nil
+    method public block() void
+    method public nblock() void
 }

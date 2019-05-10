@@ -42,7 +42,7 @@ enum class VT {
     FLOAT32,
     FLOAT64,
     BOOL,
-    NIL,                    //空类型
+    VOID,                    //空类型
 
     /*值及字面内容*/
     iNULL,                  //空指针

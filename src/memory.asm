@@ -22,7 +22,7 @@ vheap resb VHEAP_SIZE
 [bits 64]
 [default rel]
 
-; method memory::init() nil
+; method memory::init() void
 method.memory.init:
     mov dword [vheap], (VHEAP_SIZE>>3) & free
     ret
@@ -75,7 +75,7 @@ method.memory.alloc.Vi32:
         lea rax, [rbp+rbx*8+4]
         jmp .E
 
-; method memory::memset( p *int8, v int8, c int32 ) nil
+; method memory::memset( p *int8, v int8, c int32 ) void
 ; @param p : RSI
 ; @param v : RDX
 ; @param c : RCX

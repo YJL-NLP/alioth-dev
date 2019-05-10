@@ -3,11 +3,11 @@ module Sym
 class Sym {
     obj met int32
 
-    method met( x int32 ) nil
-    method zzz() nil
+    method met( x int32 ) void
+    method zzz() void
 }
 
-method Sym met( x int32 ) nil {
+method Sym met( x int32 ) void {
     zzz();
     return;
 }

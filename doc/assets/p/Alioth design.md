@@ -392,7 +392,7 @@ parameter =
 	[ element type ] , parameter name , [ data type ] ;
 
 return prototype = 
-	"nil" | element prototype ;
+	"void" | element prototype ;
 ~~~
 
 其中`executable block`是**实现**的一种,在后面会加以讨论
@@ -545,8 +545,8 @@ Alioth为一个模块建立语法树的过程大致是
 设有两个方法定义如下:
 
 ~~~alioth
-method M( v T ) nil;
-method M( v E ) nil;
+method M( v T ) void;
+method M( v E ) void;
 ~~~
 
 若`T`和`E`是同一个类型在不同源代码文件中的不同别名,那么这两个`M`就应当是冲突的.
@@ -558,7 +558,7 @@ method M( v E ) nil;
 除此之外,方法域名的正确与否也是没办法验证的.
 
 ~~~alioth
-method C::A::M() nil ;
+method C::A::M() void ;
 ~~~
 
 上述代码表示定义`M`函数,属于`C::A`这个类,但是在扫描这个方法定义的时候,`C`类额定义很可能还没被扫描过.

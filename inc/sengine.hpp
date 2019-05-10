@@ -45,15 +45,12 @@ class Sengine {
 
         /** 检查表达式语义时，表达式所处的位置特征 */
         enum Position{
-            LeftOfAss,      //在赋值运算符左侧
-            RightOfAss,     //在赋值运算符右侧
-            LeftOfMember,   //在成员运算符左侧
-            RightOfMember,  //在成员运算符右侧
-            LeftOfOp,       //在其他运算符左侧
-            RightOfOp,      //在其他运算符右侧
+            LeftOfAssign,   //在赋值运算符左侧
+            BeforeMember,   //在成员运算符左侧
             AsInit,         //作为初始值
             AsProc,         //作为过程
             AsParam,        //作为参数
+            AsOperand,      //作为通常的运算子
             AsRetVal,       //作为返回值
             Floating };     //漂浮于指令块
         
@@ -193,7 +190,7 @@ class Sengine {
          * @desc :
          *  一个通用函数,用于处理块中可见的任何实现
          */
-        bool performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder );
+        bool performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder, Position pos = Floating );
 
         /**
          * @method performImplementationSemanticValidation : 执行实现语义检查
@@ -218,7 +215,8 @@ class Sengine {
          * @desc :
          *  为表达式执行语义分析,返回表达式产生的中间结果
          */
-        $imm performImplementationSemanticValidation( $ExpressionImpl impl ,IRBuilder<>& builde, Position pos = Floating );
+        $imm performImplementationSemanticValidation( $ExpressionImpl impl ,IRBuilder<>& builde, Position pos );
+        $imm processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         imms processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         imms processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );

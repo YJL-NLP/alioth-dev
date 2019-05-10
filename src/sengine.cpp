@@ -180,14 +180,14 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     return performImplementationSemanticValidation( method->body, builder );
 }
 
-bool Sengine::performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder ) {
+bool Sengine::performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder, Position pos ) {
     if( flag_terminate ){
         mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
         return false;
     } 
     bool ret = true;
     if( auto ct = ($FlowCtrlImpl)impl; ct ) ret = performImplementationSemanticValidation( ct, builder);
-    else if( auto ex = ($ExpressionImpl)impl; ex ) ret = performImplementationSemanticValidation( ex, builder);
+    else if( auto ex = ($ExpressionImpl)impl; ex ) ret = performImplementationSemanticValidation( ex, builder, pos);
     else if( auto el = ($ConstructImpl)impl; el ) ret = performImplementationSemanticValidation( el, builder);
     else if( auto br = ($BranchImpl)impl; br ) ret = performImplementationSemanticValidation( br, builder);
     else if( auto lp = ($LoopImpl)impl; lp ) ret = performImplementationSemanticValidation( lp, builder);
@@ -216,7 +216,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
     switch( impl->action ) {
         case RETURN: {
             if( impl->expr ) {
-                auto v = performImplementationSemanticValidation( impl->expr, builder );
+                auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal );
                 //[TODO] : generateBackendIR for <leave> method
                 builder.CreateRet(v->asobject(builder));
                 flag_terminate = true;
@@ -238,10 +238,11 @@ $imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRB
         default: return nullptr;
         case ExpressionImpl::NAMEUSAGE: if( auto s = processNameusageExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
         case ExpressionImpl::MEMBER: if( auto s = processMemberExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
+        case ExpressionImpl::ASSIGN: return processAssignExpression( impl, builder, pos );
         case ExpressionImpl::VALUE: return processValueExpression( impl, builder, pos );
-        case ExpressionImpl::INFIX: return processCalcExpression( impl, builder, pos );
         case ExpressionImpl::SUFFIX: return processCalcExpression( impl, builder, pos );
         case ExpressionImpl::PREFIX: return processCalcExpression( impl, builder, pos );
+        case ExpressionImpl::INFIX: return processCalcExpression( impl, builder, pos );
         case ExpressionImpl::CALL: return processCallExpression( impl, builder, pos );
     }
 }
@@ -300,7 +301,8 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
     if( impl->type != ExpressionImpl::MEMBER ) return {};
 
     imms ret;
-    auto host = performImplementationSemanticValidation( impl->sub[0], builder );
+    auto host = performImplementationSemanticValidation( impl->sub[0], builder, BeforeMember );
+    if( !host ) return {};
     Value* vhost = host->asaddress(builder);
     if( !vhost ) {
         mlogrepo(impl->getDocPath())(Lengine::E1010,impl->name[-1].name);  
@@ -337,6 +339,33 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
     return ret;
 }
 
+$imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
+    if( impl->type != ExpressionImpl::ASSIGN ) return nullptr;
+    Value* rv;
+    $eproto proto;
+
+    auto left = performImplementationSemanticValidation(impl->sub[0],builder, LeftOfAssign);
+    auto right = performImplementationSemanticValidation(impl->sub[1],builder, AsOperand);
+    if( !left or !right ) return nullptr;
+    
+    switch( impl->mean.id ) {
+        default: break;
+        case VT::ASSIGN: builder.CreateStore(right->asobject(builder),left->asaddress(builder)); break;
+        case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+    }
+
+    return left;
+}
+
 $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::VALUE ) return nullptr;
     switch( impl->mean.id ) {
@@ -371,7 +400,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 
     std::vector<Value*> args;
     auto ait = impl->sub.begin();
-    auto fp = performImplementationSemanticValidation( *(ait++), builder );
+    auto fp = performImplementationSemanticValidation( *(ait++), builder, AsProc );
     
     if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
         args.push_back(requestThis(($implementation)impl));
@@ -380,7 +409,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     }
     
     while( ait != impl->sub.end() ) {
-        auto p = performImplementationSemanticValidation( *(ait++), builder );
+        auto p = performImplementationSemanticValidation( *(ait++), builder, AsParam );
         if( !p ) return nullptr;
         args.push_back( p->asparameter(builder) );
     }
@@ -392,8 +421,8 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 
     switch( impl->type ) {
         case ExpressionImpl::INFIX: {
-            auto left = performImplementationSemanticValidation(impl->sub[0],builder);
-            auto right = performImplementationSemanticValidation(impl->sub[1],builder);
+            auto left = performImplementationSemanticValidation(impl->sub[0],builder, AsOperand);
+            auto right = performImplementationSemanticValidation(impl->sub[1],builder, AsOperand);
             if( !left or !right ) return nullptr;
             Value* rv;
             $eproto proto;
@@ -417,31 +446,19 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                 case VT::bAND:  rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
                 case VT::bOR:   rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
                 case VT::bXOR:  rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-
-                case VT::ASSIGN: builder.CreateStore(right->asobject(builder),left->asaddress(builder));return left;
-                case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
-                case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder));return left;
             }
 
             return imm::object( rv, proto );
         } break;
         case ExpressionImpl::SUFFIX: {
-            auto operand = performImplementationSemanticValidation(impl->sub[0],builder);
+            auto operand = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
             if( !operand ) return nullptr;
             Value* rv = operand->asobject(builder);
             switch( impl->mean.id ) {
                 case VT::INCRESS: builder.CreateStore(builder.CreateAdd(rv,builder.getInt32(1)),operand->asaddress(builder));break;
                 case VT::DECRESS: builder.CreateStore(builder.CreateSub(rv,builder.getInt32(1)),operand->asaddress(builder));break;
                 case VT::OPENL: {
-                    auto ind = performImplementationSemanticValidation(impl->sub[1],builder);
+                    auto ind = performImplementationSemanticValidation(impl->sub[1],builder,AsParam);
                     if( !ind ) return nullptr;
                     rv = builder.CreateGEP(rv,ind->asobject(builder));
                     rv = builder.CreateLoad(rv);
@@ -454,7 +471,7 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
             return imm::object(rv,operand->eproto());
         } break;
         case ExpressionImpl::PREFIX: {
-            auto right = performImplementationSemanticValidation(impl->sub[0],builder);
+            auto right = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
             if( !right ) return nullptr;
             Value* rv = nullptr;
             switch( impl->mean.id ) {
@@ -499,7 +516,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     $imm inm = nullptr;
     Value* inv = nullptr;
     if( impl->init ) {
-        inm = performImplementationSemanticValidation( impl->init, builder );
+        inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
         inv = inm->asobject(builder);
     }
 
@@ -524,7 +541,7 @@ bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuild
     auto bb3 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bb4 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bd = IRBuilder<>(mctx);
-    auto cond = performImplementationSemanticValidation( impl->exp, builder );
+    auto cond = performImplementationSemanticValidation( impl->exp, builder, AsOperand );
     bool ret = false;
     builder.CreateCondBr(cond->asobject(builder),bb2,bb3);
     builder.SetInsertPoint(bb4);
@@ -558,7 +575,7 @@ bool Sengine::performImplementationSemanticValidation( $LoopImpl impl ,IRBuilder
 
     bd.SetInsertPoint(bb1);
     if( impl->cond ){
-        auto cond = performImplementationSemanticValidation( impl->cond, bd );
+        auto cond = performImplementationSemanticValidation( impl->cond, bd, AsOperand );
         auto bb2 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
         bd.CreateCondBr(cond->asobject(builder),bb2,bb3);
         bd.SetInsertPoint(bb2);

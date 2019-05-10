@@ -612,7 +612,7 @@ $MethodImpl Yengine::constructMethodImplementation( tokens::iterator& it, Lengin
             if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return nullptr;
-            } else if( it->is(VT::NIL) ) {
+            } else if( it->is(VT::VOID) ) {
                 stack.redu(0,VN::PROTO);
             } else if( it->is(VN::PROTO) ) {
                 stack.movi(6);
@@ -1043,7 +1043,7 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
             } else if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return  nullptr;
-            } else if( it->is(VT::NIL) ) {
+            } else if( it->is(VT::VOID) ) {
                 stack.redu(0,VN::PROTO);
             } else if( auto proto = constructElementPrototype(it,log,scope,true); proto ) {
                 ret->rproto = move(proto);
@@ -1242,7 +1242,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 } else {
                     $ExpressionImpl nr = new ExpressionImpl;
                     nr->mean = *it;
-                    nr->type = ExpressionImpl::INFIX;
+                    nr->type = it->is(CT::ASSIGN)?ExpressionImpl::ASSIGN:ExpressionImpl::INFIX;
                     nr->sub << ret;
                     ret->setScope(scope);
                     ret = nr;

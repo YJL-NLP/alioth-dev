@@ -32,7 +32,7 @@ $typeuc typeuc::GetBasicDataType( VT vt ) {
         case VT::FLOAT32:   return GetBasicDataType(Float32);
         case VT::FLOAT64:   return GetBasicDataType(Float64);
         case VT::BOOL:      return GetBasicDataType(BooleanType);
-        case VT::NIL:       return GetBasicDataType(VoidType);
+        case VT::VOID:       return GetBasicDataType(VoidType);
         default:            return nullptr;
     }
 }

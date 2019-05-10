@@ -30,6 +30,8 @@ struct ExpressionImpl : public implementation {
             SUFFIX,     //后缀运算符引导的表达式
             PREFIX,     //前缀运算符引导的表达式
 
+            ASSIGN,     //赋值运算被单独处理
+
             /** 返回方法的运算结果 */
             CALL,       //调用
 

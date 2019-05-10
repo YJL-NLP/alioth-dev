@@ -42,12 +42,12 @@ bool token::is( CT v )const {
                 VT::UINT8,VT::UINT16,VT::UINT32,VT::UINT64,
                 VT::FLOAT32,VT::FLOAT64,
                 VT::BOOL,
-                VT::NIL);  //2019/03/28 将nil视为基础数据类型之一
+                VT::VOID);
         case CT::CONSTANT:
             return is(
                 VT::iCHAR,VT::iSTRING,
                 VT::iFALSE,VT::iTRUE,
-                VT::iNULL, //VT::NIL, [2019/03/28] 将nil从常量中剔除,从此引用不存在空值
+                VT::iNULL, //VT::VOID, [2019/03/28] 将nil从常量中剔除,从此引用不存在空值
                 VT::iFLOAT,
                 VT::iINTEGERb,VT::iINTEGERh,VT::iINTEGERn,VT::iINTEGERo
             );

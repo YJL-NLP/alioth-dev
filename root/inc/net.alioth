@@ -22,8 +22,8 @@ class SockAddr {
      *  此方法用于构造socket地址结构
      * @param port : 端口号,本机字节顺序
      */
-    method CreateLocalHost( port int32 ) nil
-    method CreateBroadCast( port int32 ) nil
+    method CreateLocalHost( port int32 ) void
+    method CreateBroadCast( port int32 ) void
 
     /**
      * @method toReadable : 导出可读形式
@@ -32,7 +32,7 @@ class SockAddr {
      * @param str : 字符串缓冲,用于存储人类可读的点分制IP地址
      * @param port : 本机字节顺序的端口号
      */
-    method toReadable( str *int8, port *int32 ) nil
+    method toReadable( str *int8, port *int32 ) void
 }
 
 /**
@@ -80,5 +80,5 @@ class Socket {
      * @param addr : 若此值不为空,则套接字会被绑定在这个地址上
      * @return Socket : 创建的Socket对象
      */
-    method Create( ref addr SockAddr ) nil
+    method Create( ref addr SockAddr ) void
 }

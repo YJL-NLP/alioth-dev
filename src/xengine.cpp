@@ -145,6 +145,7 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else if( pre == 's' ) state = 32;
             else if( pre == 't' ) state = 33;
             else if( pre == 'u' ) state = 34;
+            else if( pre == 'v' ) state = 37;
             else if( islabelb(pre) ) state = 4;
             else if( pre == '~' ) check(VT::bREV,true);
             else if( pre == '!' ) state = 57;//assign(VT::NE,VT::FORCE);
@@ -319,7 +320,6 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             break;
         case 27:
             if( pre == 'e' ) test(VT::NEW,1);
-            else if( pre == 'i' ) test(VT::NIL,1);
             else if( pre == 'o' ) test(VT::NOT,1);
             else if( pre == 'u' ) test(VT::iNULL,1);
             else if( islabel(pre) ) state = 4;
@@ -382,7 +382,9 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else check(VT::LABEL,false);
             break;
         case 37:
-            /** 由于词法规则改变而空闲的状态 */
+            if( pre == 'o' ) test(VT::VOID,1);
+            else if( islabel(pre) ) state = 4;
+            else check(VT::LABEL,false);
             break;
         case 38:
             if( pre == '-' ) check(VT::DECRESS,true);
@@ -520,7 +522,7 @@ void Xengine::init() {
         __table[(int)VT::FLOAT64] = "float64";
         __table[(int)VT::BOOL] = "bool";
         __table[(int)VT::iNULL] = "null";
-        __table[(int)VT::NIL] = "nil";
+        __table[(int)VT::VOID] = "void";
         __table[(int)VT::iTRUE] = "true";
         __table[(int)VT::iFALSE] = "false";
         __table[(int)VT::iTHIS] = "this";
