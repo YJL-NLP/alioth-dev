@@ -214,11 +214,12 @@ class Sengine {
          * @method performImplementationSemanticValidation : 执行实现语义检查
          * @desc :
          *  为表达式执行语义分析,返回表达式产生的中间结果
+         * @param pos : 指定表达式的地位，在语义分析时，倾向于使表达式的结果在接下来的使用中有效。
          */
         $imm performImplementationSemanticValidation( $ExpressionImpl impl ,IRBuilder<>& builde, Position pos );
-        $imm processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         imms processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         imms processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
+        $imm processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCallExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCalcExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );

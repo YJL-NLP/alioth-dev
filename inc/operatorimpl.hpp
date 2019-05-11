@@ -38,18 +38,18 @@ struct OperatorImpl : public implementation, public morpheme::plist {
         anything subtitle;
 
         /**
-         * @member revers : 反向重载
+         * @member reverse : 反向重载
          * @desc :
          *  此标志与same冲突，表示此重载是一个反向重载
          */
-        token revers;
+        token reverse;
 
         /**
-         * @member same : 正反同构
+         * @member isomorphic : 正反同构
          * @desc :
          *  正反同构标志
          */
-        token same;
+        token isomorphic;
 
         /**
          * @member body : 运算符体

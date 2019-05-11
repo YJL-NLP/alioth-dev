@@ -37,11 +37,11 @@ struct OperatorDef : public definition, public morpheme::plist {
         token revers;
 
         /**
-         * @member same : 正反同构
+         * @member isomorphic : 正反同构
          * @desc :
          *  正反同构标志
          */
-        token same;
+        token isomorphic;
 
     public:
 
