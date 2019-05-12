@@ -161,7 +161,7 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
     stack.movi(1,0);
     
     while( stack.size() > 0 ) switch( (state)stack ) {
-        case 100: 
+        case 1: 
             if( it->is(VT::OPENS) ) {
                 stack.movi(110);
             } else if( it->is(VT::OPENL) ) {

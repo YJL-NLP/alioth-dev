@@ -1,0 +1,11 @@
+module Op entry main : alioth
+
+class Op {
+    method main( argc int32, argv **int8 ) int32
+
+    operator
+}
+
+method Op main( argc int32, argv **int8 ) int32 {
+    return argc;
+}
