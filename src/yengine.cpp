@@ -550,6 +550,8 @@ $eproto Yengine::constructElementPrototype( tokens::iterator& it, Lengine::logs&
     } else {
         it.r.insert(*it,it.pos);
         it->id = VT::SPACE;
+        it->el = it->bl;
+        it->ec = it->bc;
         ret->elmt = UDF;
     }
 

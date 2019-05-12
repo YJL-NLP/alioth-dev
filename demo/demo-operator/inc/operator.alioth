@@ -3,7 +3,13 @@ module Op entry main : alioth
 class Op {
     method main( argc int32, argv **int8 ) int32
 
-    operator
+    class abstract Sub {
+        method atomic main()
+    }
+
+    operator {...} ()
+
+    operator . op () int32
 }
 
 method Op main( argc int32, argv **int8 ) int32 {
