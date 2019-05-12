@@ -84,6 +84,7 @@ struct eproto : public thing {
          * @return $eproto : 组装好的元素原型
          */
         static $eproto MakeUp( $scope sc, etype tele, $typeuc tdat, const token& fconst = VT::R_ERR );
+        $eproto copy()const;
 
         /**
          * @method setScope : 设置作用域

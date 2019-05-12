@@ -17,5 +17,5 @@ method Op main( argc int32, argv **int8 ) int32 {
 }
 
 method Op::Sub main() ptr * this class {
-    return null;
+    return &this;
 }

@@ -444,6 +444,16 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 )
             );
         }
+        case VT::iTHIS: {
+            return imm::object(
+                requestThis(($implementation)impl),
+                eproto::MakeUp(
+                    impl->getScope(),
+                    REF,
+                    typeuc::GetCompositeType(requestThisClass(($implementation)impl))
+                )
+            );
+        }
         default : return nullptr;
     }
 }

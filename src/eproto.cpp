@@ -16,6 +16,15 @@ $eproto eproto::MakeUp( $scope scope, etype tele, $typeuc tdat, const token& fco
     return ret;
 }
 
+$eproto eproto::copy()const {
+    return MakeUp(
+        dtype->name.getScope(),
+        elmt,
+        dtype,
+        cons
+    );
+}
+
 void eproto::setScope( $scope sc ) {
     dtype->setScope(sc);
 }

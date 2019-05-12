@@ -10,7 +10,7 @@ imm::imm( immt T, Value* V, anything P, agent<imm> H ):t(T),v(V),p(P),h(H){}
 
 $imm imm::address( Value* addr, $eproto proto, agent<imm> host ) {return new imm(adr,addr,(anything)proto,host);}
 $imm imm::object( Value* obj, $eproto proto ) {return new imm(val,obj,(anything)proto);}
-$eproto imm::eproto()const{ return ($eproto)p; }
+$eproto imm::eproto()const{ auto pro = ($eproto)p; return pro?pro->copy():pro; }
 
 $imm imm::entity( Value* addr, $ClassDef def ) {return new imm(ety,addr,(anything)def); }
 $ClassDef imm::metacls()const{ return ($ClassDef)p; }
