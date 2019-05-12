@@ -4,10 +4,10 @@ class Op {
     method main( argc int32, argv **int8 ) int32
 
     class abstract Sub {
-        method atomic main()
+        method atomic main() void
     }
 
-    operator {...} ()
+    operator assign add () Type
 
     operator . op () int32
 }

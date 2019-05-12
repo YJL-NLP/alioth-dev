@@ -313,7 +313,7 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
             } break;
         case 132:
             if( it->is(CT::LB_ADD) ) {
-                stack.redu(3,VN::OPL_ASSIGN_ADD);
+                stack.redu(2,VN::OPL_ASSIGN_ADD);
             } else if( it->is(CT::LB_SUB) ) {
                 stack.redu(2,VN::OPL_ASSIGN_SUB);
             } else if( it->is(CT::LB_MUL) ) {
