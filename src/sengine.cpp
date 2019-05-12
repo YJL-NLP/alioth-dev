@@ -147,6 +147,32 @@ bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
     return ft != nullptr;
 }
 
+bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
+    
+    if( opdef->action ) {
+        if( opdef->action.is(VT::DELETE) ) {
+            if( !opdef->name.is(VN::OPL_SCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR) ) {
+                mlogrepo(opdef->getDocPath())(Lengine::E2037,opdef->name);
+                return false;
+            }
+            return true;
+        } else if( opdef->action.is(VT::DEFAULT) ) {
+            if( !opdef->name.is(VN::OPL_ASSIGN) ) {
+                mlogrepo(opdef->getDocPath())(Lengine::E2038,opdef->name);
+                //[TODO]: 检查参数列表和返回元素
+            }
+            //[TODO]: 产生默认运算符体
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //[TODO]: 检查其他细节。
+
+    return true;
+}
+
 bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     
     auto fs = generateGlobalUniqueName(($node)method);
@@ -388,6 +414,16 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                     impl->getScope(),
                     PTR,
                     typeuc::GetPointerType(typeuc::GetBasicDataType(VT::INT8))
+                )
+            );
+        }
+        case VT::iNULL: {
+            return imm::object(
+                ConstantPointerNull::get(builder.getInt8PtrTy()),
+                eproto::MakeUp(
+                    impl->getScope(),
+                    PTR,
+                    typeuc::GetVoidType()
                 )
             );
         }
@@ -656,8 +692,20 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
 }
 
 $typeuc Sengine::determineDataType( $typeuc type ) {
+    auto eve = everything();
     if( type->is(typeuc::NamedType) ) {
-        auto eve = request( type->name, NormalClass );
+        if( type->name.size() ) {
+            eve = request( type->name, NormalClass );
+        }else if( auto scope = ($definition)type->sub; scope ) {
+            while( scope and !scope->is(CLASSDEF) ) scope = scope->getScope();
+            if( scope ) eve << (anything)scope;
+        } else if( auto def = requestThisClass(($implementation)type->sub); def ) {
+            eve << (anything)def;
+        } else {
+            //[TODO]: 抛出异常
+            return nullptr;
+        }
+
         if( eve.size() != 1 ) {
             mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
             return nullptr;
@@ -755,12 +803,12 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
     function<everything(const nameuc&,$scope)> lookupInternal = [&]( const nameuc& fn, $scope fsc ) -> everything {
         auto fsname = (string)fn[0].name;
         if( auto mdef = ($module)fsc; mdef ) {
-            for( auto in : mdef->internal + mdef->external ) if( (string)in->name == sname ) {
+            for( auto in : mdef->internal + mdef->external ) if( (string)in->name == fsname ) {
                 if( fn.size() == 1 ) res << (anything)in;
                 else return lookupInternal( fn%1, in );
             }
         } else if( auto cdef = ($ClassDef)fsc; cdef ) {
-            for( auto in : cdef->internal ) if( (string)in->name == sname ) {
+            for( auto in : cdef->internal ) if( (string)in->name == fsname ) {
                 if( fn.size() == 1 ) res << (anything)in;
                 else return lookupInternal( fn%1, in );
             }

@@ -514,6 +514,8 @@ $typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $s
                 if( !ret->name ) return nullptr;
                 ret->id = typeuc::NamedType;
                 stack.redu(1,VN::TYPEUC);
+            } else if( it->is(VT::iTHIS) ) {
+                stack.movi(3);
             } else {
                 ret->id = typeuc::UnknownType;
                 stack.redu(-1,VN::TYPEUC);
@@ -527,6 +529,15 @@ $typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $s
             } else {
                 ret->sub = dt;
                 stack.redu(2,VN::TYPEUC);
+            } break;
+        case 3:
+            if( it->is(VT::CLASS) ) {
+                ret->id = typeuc::NamedType;
+                ret->sub = sc;
+                stack.redu(2,VN::TYPEUC);
+            } else {
+                log(Lengine::E202,VT::CLASS,*it);
+                return nullptr;
             } break;
     }
 

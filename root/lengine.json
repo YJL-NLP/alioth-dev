@@ -509,7 +509,7 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "b0",
-            "msg" : "visibility of operators are locked to PUBLIC, you cannot specify it explicitly."
+            "msg" : "visibility of operators are locked to PUBLIC, you cannot specify it explicitly"
         },"2035" : {
             "sev" : 1,
             "beg" : "b0",
@@ -520,6 +520,16 @@
             "beg" : "b0",
             "end" : "b0",
             "msg" : "nothing can be found to be an operator identifier"
+        },"2037" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "deleting this operator is not allowed"
+        },"2038" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "cannot generate default body for this operator"
         }
     }
 }

@@ -9,6 +9,7 @@
 #include "methoddef.hpp"
 #include "methodimpl.hpp"
 #include "branchimpl.hpp"
+#include "operatordef.hpp"
 #include "flowctrlimpl.hpp"
 #include "typeconvertdiagram.hpp"
 #include <llvm/Target/TargetMachine.h>
@@ -254,6 +255,8 @@ class Sengine {
          *  以此生成方法入口
          */
         bool performDefinitionSemanticValidation( $MethodDef method );
+
+        bool performDefinitionSemanticValidation( $OperatorDef opdef );
 
         /**
          * @method performImplementationSemanticValidation : 执行实现语义检查

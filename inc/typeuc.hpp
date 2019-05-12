@@ -17,6 +17,8 @@ using $ClassDef = agent<ClassDef>;
  * @class typeuc : type use case, 类型用例
  * @desc :
  *  用于描述数据类型的类型用例
+ * 
+ *  20190513 -- 约定，当NamedType的name无效时，表示this class,sub存储type所在的作用域用于搜索定义类
  */
 class typeuc : public thing {
 

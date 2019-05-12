@@ -3,15 +3,19 @@ module Op entry main : alioth
 class Op {
     method main( argc int32, argv **int8 ) int32
 
-    class abstract Sub {
-        method atomic main() void
+    class Sub {
+        method main() this class
     }
 
-    operator assign add () Type
+    operator le () Type
 
     operator . op () int32
 }
 
 method Op main( argc int32, argv **int8 ) int32 {
     return argc;
+}
+
+method Op::Sub main() this class {
+    return null;
 }
