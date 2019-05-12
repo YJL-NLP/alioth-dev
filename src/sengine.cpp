@@ -136,11 +136,23 @@ bool Sengine::performImplementationSemanticValidation( $ClassDef clas ) {
 
 bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
     vector<Type*> pts;
-    auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts);
+    bool fine = true;
+
+    auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts); 
+    if( !rtp ) fine = false;
+
     auto tss = generateGlobalUniqueName(method->getScope(),method->meta?Meta:None);
     if( mnamedT.count(tss) == 0 ) mnamedT[tss] = StructType::create(mctx,tss);
     pts.push_back(mnamedT[tss]->getPointerTo());
-    for( auto par : *method ) pts.push_back( generateTypeUsageAsParameter(par->proto) );
+    
+    for( auto par : *method ) {
+        auto t = generateTypeUsageAsParameter(par->proto);
+        if( !t ) fine = false;
+        pts.push_back( t );
+    }
+
+    if( !fine ) return false;
+    
     auto ft = FunctionType::get(rtp,pts,false);
     auto fs = generateGlobalUniqueName(($node)method);
     mnamedT[fs] = ft;
@@ -244,6 +256,11 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
             if( impl->expr ) {
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal );
                 //[TODO] : generateBackendIR for <leave> method
+                if( auto proto = v->eproto(); proto->dtype->is(typeuc::PointerType) and (($typeuc)proto->dtype->sub)->is(typeuc::VoidType) ) {
+                    auto mep = requestPrototype(($implementation)impl);
+                    auto ty = generateTypeUsageAsAttribute(mep->rproto);
+                    v = imm::object(builder.CreatePointerCast(v->asobject(builder),ty),mep->rproto);
+                }
                 builder.CreateRet(v->asobject(builder));
                 flag_terminate = true;
             } else {
@@ -423,7 +440,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 eproto::MakeUp(
                     impl->getScope(),
                     PTR,
-                    typeuc::GetVoidType()
+                    typeuc::GetVoidType()->getPointerTo()
                 )
             );
         }
@@ -634,6 +651,12 @@ Type* Sengine::generateTypeUsageAsParameter( $eproto proto ) {
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
+
+    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
+        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+        return nullptr;
+    }
+
     if( proto->elmt == REL or proto->elmt == REF or proto->elmt == OBJ and ty->isStructTy() ) {
         ty = ty->getPointerTo();
     }
@@ -646,6 +669,10 @@ Type* Sengine::generateTypeUsageAsAttribute( $eproto proto ) {
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
+    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
+        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+        return nullptr;
+    }
     if( proto->elmt == REL or proto->elmt == REF )
         ty = ty->getPointerTo();
 
@@ -656,6 +683,10 @@ Type* Sengine::generateTypeUsageAsReturnValue( $eproto proto, vector<Type*>& pts
     if( !proto ) return Type::getVoidTy(mctx);
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
+    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
+        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+        return nullptr;
+    }
     if( ty->isStructTy() ) {
         pts.insert(pts.begin(),ty->getPointerTo());
         return Type::getInt64Ty(mctx);

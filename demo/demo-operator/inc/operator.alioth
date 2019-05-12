@@ -4,7 +4,7 @@ class Op {
     method main( argc int32, argv **int8 ) int32
 
     class Sub {
-        method main() this class
+        method main() ptr * this class
     }
 
     operator le () Type
@@ -16,6 +16,6 @@ method Op main( argc int32, argv **int8 ) int32 {
     return argc;
 }
 
-method Op::Sub main() this class {
+method Op::Sub main() ptr * this class {
     return null;
 }

@@ -530,6 +530,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "cannot generate default body for this operator"
+        },"2039" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "data type doesn't match the element prototype"
         }
     }
 }
