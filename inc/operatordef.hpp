@@ -19,7 +19,7 @@ struct OperatorDef : public definition, public morpheme::plist {
          * @desc :
          *  有些运算符携带副标题
          */
-        anything subtitle;
+        token subtitle;
 
         /**
          * @member rproto : 返回值元素原型
@@ -30,18 +30,19 @@ struct OperatorDef : public definition, public morpheme::plist {
         $eproto rproto;
 
         /**
-         * @member revers : 反向重载
+         * @member modifier : 修饰
          * @desc :
-         *  此标志与same冲突，表示此重载是一个反向重载
+         *  运算符定义可以携带一个修饰符
+         *  修饰符的取值范围: {rev,ism,prefix,suffix}
          */
-        token revers;
+        token modifier;
 
         /**
-         * @member isomorphic : 正反同构
+         * @member action : 动作标记
          * @desc :
-         *  正反同构标志
+         *  可以通过动作标记指定编译器的动作，delete或default
          */
-        token isomorphic;
+        token action;
 
     public:
 

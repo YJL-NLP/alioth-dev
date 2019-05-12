@@ -12,10 +12,12 @@
 #include "methoddef.hpp"
 #include "branchimpl.hpp"
 #include "methodimpl.hpp"
-#include "constructimpl.hpp"
+#include "operatordef.hpp"
+#include "operatorimpl.hpp"
 #include "flowctrlimpl.hpp"
 #include "insblockimpl.hpp"
 #include "modulegranule.hpp"
+#include "constructimpl.hpp"
 #include "expressionimpl.hpp"
 #include "modulesignature.hpp"
 
@@ -242,6 +244,13 @@ class Yengine {
          */
         nameuc::atom constructAtomicNameUseCase( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb );
 
+        /**
+         * @method constructOperatorLabel : 构造运算符标签
+         * @desc :
+         *  从记号流中分析一个运算符标签。
+         */
+        token constructOperatorLabel( tokens::iterator& it, Lengine::logs& log, token& sub );
+
     public:
 
         /**
@@ -290,17 +299,19 @@ class Yengine {
          * @param scope : 作用域
          * @return $* : 各种语法结构的代理
          */
-        $MethodImpl constructMethodImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
-        $ClassDef constructClassDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
-        $AttrDef constructAttributeDefinition( tokens::iterator& it, Lengine::logs& log, $ClassDef sc, int wn );
         $EnumDef constructEnumDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
+        $ClassDef constructClassDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
         $MethodDef constructMethodDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
+        $AttrDef constructAttributeDefinition( tokens::iterator& it, Lengine::logs& log, $ClassDef sc, int wn );
+        $OperatorDef constructOperatorDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
         $InsBlockImpl constructInstructionBlockImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
-        $FlowCtrlImpl constructFlowControlImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $ExpressionImpl constructExpressionImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
+        $FlowCtrlImpl constructFlowControlImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $ConstructImpl constructConstructImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
+        $OperatorImpl constructOperatorImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
+        $MethodImpl constructMethodImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
+        $BranchImpl constructBranchImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $LoopImpl constructLoopimplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
-        $BranchImpl constructBranchImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope);
         /**
          * @method constructNameUseCase : 构建名称用例
          * @desc :

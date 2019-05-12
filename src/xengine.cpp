@@ -146,15 +146,16 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else if( pre == 't' ) state = 33;
             else if( pre == 'u' ) state = 34;
             else if( pre == 'v' ) state = 37;
+            else if( pre == 'x' ) state = 59;
             else if( islabelb(pre) ) state = 4;
-            else if( pre == '~' ) check(VT::bREV,true);
+            else if( pre == '~' ) check(VT::BITREV,true);
             else if( pre == '!' ) state = 57;//assign(VT::NE,VT::FORCE);
             else if( pre == '@' ) check(VT::AT,true);
             else if( pre == '#' ) check(VT::WHERE,true);
             else if( pre == '$' ) check(VT::CONV,true);
             else if( pre == '%' ) assign(VT::ASSIGN_MOL,VT::MOL);
-            else if( pre == '^' ) assign(VT::ASSIGN_bXOR,VT::bXOR);
-            else if( pre == '&' ) assign(VT::ASSIGN_bAND,VT::bAND);
+            else if( pre == '^' ) assign(VT::ASSIGN_bXOR,VT::BITXOR);
+            else if( pre == '&' ) assign(VT::ASSIGN_bAND,VT::BITAND);
             else if( pre == '*' ) assign(VT::ASSIGN_MUL,VT::MUL);
             else if( pre == '(' ) check(VT::OPENA,true);
             else if( pre == ')' ) check(VT::CLOSEA,true);
@@ -165,7 +166,7 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else if( pre == ']' ) check(VT::CLOSEL,true);
             else if( pre == '{' ) check(VT::OPENS,true);
             else if( pre == '}' ) check(VT::CLOSES,true);
-            else if( pre == '|' ) assign(VT::ASSIGN_bOR,VT::bOR);
+            else if( pre == '|' ) assign(VT::ASSIGN_bOR,VT::BITOR);
             else if( pre == ';' ) check(VT::SEMI,true);
             else if( pre == ':' ) state = 40;
             else if( pre == ',' ) check(VT::COMMA,true);
@@ -483,6 +484,11 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             else if( islabel(pre) ) state = 4;
             else check(VT::LABEL,false);
             break;
+        case 59:
+            if( pre == 'o' ) test(VT::XOR,1);
+            else if( islabel(pre) ) state = 4;
+            else check(VT::LABEL,false);
+            break;
     }
 
     if( state < 0 ) {
@@ -646,15 +652,15 @@ int Xengine::priority( const token& t ) {
         p += 1;         //单目运算符    前
         if( t.is(VT::NOT) ) break; 
         p += 1;                      //单目运算符    前
-        if( t.is(VT::bREV) ) break;
+        if( t.is(VT::BITREV) ) break;
         p += 1;                      //单目运算符    前
         if( t.is(VT::SHL,VT::SHR) ) break;
         p += 1;               //双目运算符    左结合
-        if( t.is(VT::bAND) ) break;
+        if( t.is(VT::BITAND) ) break;
         p += 1;                      //双目运算符    左结合
-        if( t.is(VT::bXOR) ) break;
+        if( t.is(VT::BITXOR) ) break;
         p += 1;
-        if( t.is(VT::bOR) ) break;
+        if( t.is(VT::BITOR) ) break;
         p += 1;
         if( t.is(VT::MOL,VT::MUL,VT::DIV) ) break;
         p += 1;

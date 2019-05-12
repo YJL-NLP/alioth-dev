@@ -38,11 +38,11 @@ struct MethodDef : public definition, public morpheme::plist {
         token meta;
 
         /**
-         * @member sync : 同步标记
+         * @member atomic : 同步标记
          * @desc :
          *  若此成员有效,则方法成为原子操作,或称同步方法.
          */
-        token sync;
+        token atomic;
     
     public:
 

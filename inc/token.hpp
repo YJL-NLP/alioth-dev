@@ -27,6 +27,50 @@ enum class CT {
     SUFFIX,             //后缀运算符
 
     IMPLEMENTATION,     //表达式,分支,循环,流控制,块
+    OPL,                //运算符标签
+    OPL_ASSIGN,         //赋值运算符标签
+
+    /**
+     * 约定标签
+     * MF -- modifier
+     * LB -- label
+     */
+    MF_ABSTRACT,
+    MF_REV,
+    MF_ISM,
+    MF_PREFIX,
+    MF_SUFFIX,
+    MF_ATOMIC,
+    LB_SCTOR,
+    LB_LCTOR,
+    LB_CCTOR,
+    LB_MCTOR,
+    LB_DTOR,
+    LB_MEMBER,
+    LB_WHERE,
+    LB_MOVE,
+    LB_NEGATIVE,
+    LB_BITREV,
+    LB_INCREASE,
+    LB_DECREASE,
+    LB_INDEX,
+    LB_ADD,
+    LB_SUB,
+    LB_MUL,
+    LB_DIV,
+    LB_MOL,
+    LB_BITAND,
+    LB_BITOR,
+    LB_BITXOR,
+    LB_SHL,
+    LB_SHR,
+    LB_LT,
+    LB_GT,
+    LB_LE,
+    LB_GE,
+    LB_EQ,
+    LB_NE,
+    LB_ASSIGN,
 };
 
 /**

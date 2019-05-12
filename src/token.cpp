@@ -71,10 +71,10 @@ bool token::is( CT v )const {
                 VT::WHERE,
                 VT::INCRESS,VT::DECRESS,
                 VT::NOT,
-                VT::bREV,
+                VT::BITREV,
                 VT::SHL,VT::SHR,
-                VT::bAND,
-                VT::bXOR,
+                VT::BITAND,
+                VT::BITXOR,
                 VT::MOL,VT::MUL,VT::DIV,
                 VT::PLUS,VT::MINUS,
                 VT::RANGE,
@@ -86,9 +86,9 @@ bool token::is( CT v )const {
         case CT::PREFIX:
             return is(
                 VT::PLUS,VT::MINUS,
-                VT::bAND,VT::MUL,
+                VT::BITAND,VT::MUL,
                 VT::INCRESS,VT::DECRESS,
-                VT::bREV
+                VT::BITREV
             );
         case CT::SUFFIX:
             return is(
@@ -99,9 +99,9 @@ bool token::is( CT v )const {
                 VT::MEMBER,
                 VT::WHERE,
                 VT::SHL,VT::SHR,
-                VT::bAND,
-                VT::bXOR,
-                VT::bOR,
+                VT::BITAND,
+                VT::BITXOR,
+                VT::BITOR,
                 VT::MOL,VT::MUL,VT::DIV,
                 VT::PLUS,VT::MINUS,
                 VT::RANGE,
@@ -117,6 +117,57 @@ bool token::is( CT v )const {
         case CT::IMPLEMENTATION:
             return is(
                 VN::BRANCH,VN::LOOP,VN::CONTROL,VN::BLOCK,VN::EXPRESSION
+            );
+        case CT::MF_ABSTRACT: return tx == "abstract";
+        case CT::MF_REV: return tx == "rev";
+        case CT::MF_ISM: return tx == "ism";
+        case CT::MF_PREFIX: return tx == "prefix";
+        case CT::MF_SUFFIX: return tx == "suffix";
+        case CT::MF_ATOMIC: return tx == "atomic";
+        case CT::LB_SCTOR: return tx == "sctor";
+        case CT::LB_LCTOR: return tx == "lctor";
+        case CT::LB_CCTOR: return tx == "cctor";
+        case CT::LB_MCTOR: return tx == "mctor";
+        case CT::LB_DTOR: return tx == "dtor";
+        case CT::LB_MEMBER: return tx == "member" or is(VT::MEMBER);
+        case CT::LB_WHERE: return tx == "locate" or is(VT::WHERE);
+        case CT::LB_MOVE: return tx == "move";
+        case CT::LB_NEGATIVE: return tx == "negative";
+        case CT::LB_BITREV: return tx == "bitrev" or is(VT::BITREV);
+        case CT::LB_INCREASE: return tx == "increase" or is(VT::INCRESS);
+        case CT::LB_DECREASE: return tx == "decrease" or is(VT::DECRESS);
+        case CT::LB_INDEX: return tx == "index";
+        case CT::LB_ADD: return tx == "add" or is(VT::PLUS);
+        case CT::LB_SUB: return tx == "sub" or is(VT::MINUS);
+        case CT::LB_MUL: return tx == "mul" or is(VT::MUL);
+        case CT::LB_DIV: return tx == "div" or is(VT::DIV);
+        case CT::LB_MOL: return tx == "mol" or is(VT::MOL);
+        case CT::LB_BITAND: return tx == "bitand" or is(VT::BITAND);
+        case CT::LB_BITOR: return tx == "bitor" or is(VT::BITOR);
+        case CT::LB_BITXOR: return tx == "bitxor" or is(VT::BITXOR);
+        case CT::LB_SHL: return tx == "shl" or is(VT::SHL);
+        case CT::LB_SHR: return tx == "shr" or is(VT::SHR);
+        case CT::LB_LT: return tx == "lt" or is(VT::LT);
+        case CT::LB_GT: return tx == "gt" or is(VT::GT);
+        case CT::LB_LE: return tx == "le" or is(VT::LE);
+        case CT::LB_GE: return tx == "ge" or is(VT::GE);
+        case CT::LB_EQ: return tx == "eq" or is(VT::EQ);
+        case CT::LB_NE: return tx == "ne" or is(VT::NE);
+        case CT::LB_ASSIGN: return tx == "assign" or is(VT::ASSIGN);
+        case CT::OPL:
+            return is(
+                VN::OPL_INDEX,CT::OPL_ASSIGN,
+                VN::OPL_SCTOR, VN::OPL_LCTOR, VN::OPL_CCTOR, VN::OPL_MCTOR, VN::OPL_DTOR, VN::OPL_MEMBER, VN::OPL_WHERE, VN::OPL_MOVE,
+                VN::OPL_NEGATIVE, VN::OPL_BITREV, VN::OPL_INCREASE, VN::OPL_DECREASE,
+                VN::OPL_ADD, VN::OPL_SUB, VN::OPL_MUL, VN::OPL_DIV, VN::OPL_MOL,
+                VN::OPL_BITAND, VN::OPL_BITOR, VN::OPL_BITXOR, VN::OPL_SHL, VN::OPL_SHR,
+                VN::OPL_LT, VN::OPL_GT, VN::OPL_LE, VN::OPL_GE, VN::OPL_EQ, VN::OPL_NE
+            );
+        case CT::OPL_ASSIGN:
+            return is(
+                VN::OPL_ASSIGN,
+                VN::OPL_ASSIGN_ADD, VN::OPL_ASSIGN_SUB, VN::OPL_ASSIGN_MUL, VN::OPL_ASSIGN_DIV, VN::OPL_ASSIGN_MOL,
+                VN::OPL_ASSIGN_SHL, VN::OPL_ASSIGN_SHR, VN::OPL_ASSIGN_BITAND, VN::OPL_ASSIGN_BITOR, VN::OPL_ASSIGN_BITXOR
             );
         default:
             return false;

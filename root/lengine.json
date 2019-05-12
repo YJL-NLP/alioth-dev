@@ -505,6 +505,21 @@
             "beg" : "b0",
             "end" : "b0",
             "msg" : "implementation after termination is not allowed"
+        },"2034" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "visibility of operators are locked to PUBLIC, you cannot specify it explicitly."
+        },"2035" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "nothing can be found to start an operator"
+        },"2036" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "nothing can be found to be an operator identifier"
         }
     }
 }

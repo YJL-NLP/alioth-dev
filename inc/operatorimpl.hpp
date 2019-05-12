@@ -35,26 +35,19 @@ struct OperatorImpl : public implementation, public morpheme::plist {
          * @desc :
          *  有些运算符携带副标题
          */
-        anything subtitle;
+        token subtitle;
 
         /**
-         * @member reverse : 反向重载
-         * @desc :
-         *  此标志与same冲突，表示此重载是一个反向重载
+         * @member midifier : 修饰符
+         * @desc:
+         *  运算符可以携带的修饰符。
          */
-        token reverse;
-
-        /**
-         * @member isomorphic : 正反同构
-         * @desc :
-         *  正反同构标志
-         */
-        token isomorphic;
+        token modifier;
 
         /**
          * @member body : 运算符体
          * @desc :
-         *  运算符体可能是ctor或一个InsBlockImpl
+         *  运算符体可能是ConstructorImpl或一个InsBlockImpl
          */
         anything body;
 
