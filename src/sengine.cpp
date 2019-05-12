@@ -423,7 +423,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                     typeuc::GetBasicDataType(VT::INT32)
                 )
             );
-        } 
+        }
         case VT::iSTRING: {
             return imm::object(
                 builder.CreateGlobalStringPtr( Xengine::extractText(impl->mean) ),
@@ -451,6 +451,26 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                     impl->getScope(),
                     REF,
                     typeuc::GetCompositeType(requestThisClass(($implementation)impl))
+                )
+            );
+        }
+        case VT::iTRUE: {
+            return imm::object(
+                builder.getTrue(),
+                eproto::MakeUp(
+                    impl->getScope(),
+                    OBJ,
+                    typeuc::GetBasicDataType(VT::BOOL)
+                )
+            );
+        }
+        case VT::iFALSE: {
+            return imm::object(
+                builder.getFalse(),
+                eproto::MakeUp(
+                    impl->getScope(),
+                    OBJ,
+                    typeuc::GetBasicDataType(VT::BOOL)
                 )
             );
         }
