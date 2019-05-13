@@ -1078,9 +1078,9 @@ Sengine::Sengine() {
     mtmachine = target->createTargetMachine( mttraiple, CPU, Features, opt, RM);
 }
 
-bool Sengine::loadModuleDefinition( $modesc mod ) {
+int Sengine::loadModuleDefinition( $modesc mod ) {
 
-    if( mrepo.count(mod) ) return true;
+    if( mrepo.count(mod) ) return 1;
     auto& root = mrepo[mod] = new module;
     root->desc = mod;
     root->name = mod->name;
@@ -1095,7 +1095,7 @@ bool Sengine::loadModuleDefinition( $modesc mod ) {
         if( syn->signature->entry ) {
             if( root->es ) {
                 mlogrepo(syn->getDocPath())(Lengine::E2031,syn->signature->entry,root->es->getDocPath(),root->es->entry);
-                return false;
+                return 0;
             } else {
                 root->es = syn->signature;
             }
@@ -1110,17 +1110,17 @@ bool Sengine::loadModuleDefinition( $modesc mod ) {
             if( auto trans = ($ClassDef)d; trans and (string)d->name == mod->name ) {
                 if( tpclass ) {
                     mlogrepo(d->getDocPath())(Lengine::E2001,d->name,tpclass->getDocPath(),tpclass->name);
-                    return false;
+                    return 0;
                 } else {
                     if( trans->abstract ) {
                         mlogrepo(trans->getDocPath())(Lengine::E2027,trans->phrase);
-                        return false;
+                        return 0;
                     } else if( trans->alias ) {
                         mlogrepo(trans->getDocPath())(Lengine::E2027,trans->phrase);
-                        return false;
+                        return 0;
                     } else if( trans->tmpls.size() ) {
                         mlogrepo(trans->getDocPath())(Lengine::E2018,trans->phrase);
-                        return false;
+                        return 0;
                     }
                     for( auto inst : trans->instdefs ) {
                         if( auto m = ($MethodDef)inst; m and !m->meta ) m->meta = token(VT::META);
@@ -1139,7 +1139,8 @@ bool Sengine::loadModuleDefinition( $modesc mod ) {
         root->impls += syn->impls;
     }
 
-    return true;
+    if( root->es ) return 2;
+    else return 1;
 }
 
 bool Sengine::performDefinitionSemanticValidation() {

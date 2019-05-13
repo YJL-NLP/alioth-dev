@@ -355,6 +355,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     urching.clear();
 
     bool bfine = true;
+    bool bentry = false;
 
     if( mnames.size() == 0 ) for( auto desc : mwork ) mnames.push_back(desc->name);
 
@@ -364,7 +365,9 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
         if( res < 0 ) bfine = false;
     }
     for( auto& desc : descs ) if( desc->constructAbstractSyntaxTree( log ) ) {
-        if( bfine ) msengine.loadModuleDefinition(desc);
+        if( bfine ) 
+            if( 2 == msengine.loadModuleDefinition(desc) ) 
+                bentry = true;
     } else {
         bfine = false;
     }
@@ -380,6 +383,8 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     args.push_back("ld");
     args.push_back("-o");
     args.push_back(mdengine.getPath("",Work|Bin) + appname);
+    if( bentry ) args.push_back(mdengine.getPath("alioth.o", Root|Obj));
+    //[TODO]: 提供不创建可执行程序的解决方案。
 
     for( auto desc : descs ) {
         Dengine::vfdm fd;

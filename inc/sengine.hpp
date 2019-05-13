@@ -407,9 +407,12 @@ class Sengine {
          * @desc :
          *  此方法将模块描述符装入语义分析器,并整理语义结构
          * @param mod : 要装入的模块
-         * @return bool : 是否成功装入了此模块,若此模块已经装入了,则返回成功,无动作.
+         * @return int : 是否成功装入了此模块,若此模块已经装入了,则返回成功,无动作.
+         *  0: 装入失败
+         *  1: 装入成功
+         *  2: 装入成功，发现入口
          */
-        bool loadModuleDefinition( $modesc mod );
+        int loadModuleDefinition( $modesc mod );
         
         /**
          * @method performDefinitionSemanticValidation : 执行定义语义校验

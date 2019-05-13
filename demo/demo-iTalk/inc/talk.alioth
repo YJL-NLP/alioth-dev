@@ -1,5 +1,4 @@
 module iTalk :
-    alioth
     io
     net as this module
     memory
