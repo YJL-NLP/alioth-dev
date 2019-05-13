@@ -532,7 +532,7 @@ $typeuc Yengine::constructDataType( tokens::iterator& it, Lengine::logs& log, $s
             } break;
         case 3:
             if( it->is(VT::CLASS) ) {
-                ret->id = typeuc::NamedType;
+                ret->id = typeuc::ThisClassType;
                 ret->sub = sc;
                 stack.redu(2,VN::TYPEUC);
             } else {

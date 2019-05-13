@@ -323,6 +323,7 @@ class Sengine {
          */
         $typeuc determineDataType( $typeuc type );
         $typeuc determineDataType( $ExpressionImpl expr );
+        $eproto determineElementPrototype( $eproto );
 
         /**
          * @method generateGlobalUniqueName : 产生全局唯一名称

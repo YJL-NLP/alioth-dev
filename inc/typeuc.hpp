@@ -18,7 +18,6 @@ using $ClassDef = agent<ClassDef>;
  * @desc :
  *  用于描述数据类型的类型用例
  * 
- *  20190513 -- 约定，当NamedType的name无效时，表示this class,sub存储type所在的作用域用于搜索定义类
  */
 class typeuc : public thing {
 
@@ -39,22 +38,23 @@ class typeuc : public thing {
 
         static const TypeID UnknownType =               (TypeIdBitL << 0x00) | UndeterminedType;
         static const TypeID NamedType =                 (TypeIdBitL << 0x01) | UndeterminedType;
-        static const TypeID UnsolvableType =            (TypeIdBitL << 0x02) | UndeterminedType;
-        static const TypeID CompositeType =             (TypeIdBitL << 0x03) | DeterminedType;
-        static const TypeID ConstraintedPointerType =   (TypeIdBitL << 0x04) | PointerType;
-        static const TypeID UnconstraintedPointerType = (TypeIdBitL << 0x05) | PointerType;
-        static const TypeID VoidType =                  (TypeIdBitL << 0x06) | BasicType;
-        static const TypeID BooleanType =               (TypeIdBitL << 0x07) | BasicType;
-        static const TypeID Uint8 =                     (TypeIdBitL << 0x08) | UnsignedIntegerType;
-        static const TypeID Uint16 =                    (TypeIdBitL << 0x09) | UnsignedIntegerType;
-        static const TypeID Uint32 =                    (TypeIdBitL << 0x0a) | UnsignedIntegerType;
-        static const TypeID Uint64 =                    (TypeIdBitL << 0x0b) | UnsignedIntegerType;
-        static const TypeID Int8 =                      (TypeIdBitL << 0x0c) | SignedIntegerType;
-        static const TypeID Int16 =                     (TypeIdBitL << 0x0d) | SignedIntegerType;
-        static const TypeID Int32 =                     (TypeIdBitL << 0x0e) | SignedIntegerType;
-        static const TypeID Int64 =                     (TypeIdBitL << 0x0f) | SignedIntegerType;
-        static const TypeID Float32 =                   (TypeIdBitL << 0x10) | FloatPointType;
-        static const TypeID Float64 =                   (TypeIdBitL << 0x11) | FloatPointType;
+        static const TypeID ThisClassType =             (TypeIdBitL << 0x02) | UndeterminedType;
+        static const TypeID UnsolvableType =            (TypeIdBitL << 0x03) | UndeterminedType;
+        static const TypeID CompositeType =             (TypeIdBitL << 0x04) | DeterminedType;
+        static const TypeID ConstraintedPointerType =   (TypeIdBitL << 0x05) | PointerType;
+        static const TypeID UnconstraintedPointerType = (TypeIdBitL << 0x06) | PointerType;
+        static const TypeID VoidType =                  (TypeIdBitL << 0x07) | BasicType;
+        static const TypeID BooleanType =               (TypeIdBitL << 0x08) | BasicType;
+        static const TypeID Uint8 =                     (TypeIdBitL << 0x09) | UnsignedIntegerType;
+        static const TypeID Uint16 =                    (TypeIdBitL << 0x0a) | UnsignedIntegerType;
+        static const TypeID Uint32 =                    (TypeIdBitL << 0x0b) | UnsignedIntegerType;
+        static const TypeID Uint64 =                    (TypeIdBitL << 0x0c) | UnsignedIntegerType;
+        static const TypeID Int8 =                      (TypeIdBitL << 0x0d) | SignedIntegerType;
+        static const TypeID Int16 =                     (TypeIdBitL << 0x0e) | SignedIntegerType;
+        static const TypeID Int32 =                     (TypeIdBitL << 0x0f) | SignedIntegerType;
+        static const TypeID Int64 =                     (TypeIdBitL << 0x10) | SignedIntegerType;
+        static const TypeID Float32 =                   (TypeIdBitL << 0x11) | FloatPointType;
+        static const TypeID Float64 =                   (TypeIdBitL << 0x12) | FloatPointType;
     public:
         TypeID id;
         nameuc name;

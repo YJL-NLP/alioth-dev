@@ -1,10 +1,10 @@
-module Op entry main : alioth
+module Op entry main
 
 class Op {
     method main( argc int32, argv **int8 ) int32
 
     class Sub {
-        method main() ptr * this class
+        method main( x *Sub ) * this class
     }
 
     operator le () Type
@@ -16,6 +16,6 @@ method Op main( argc int32, argv **int8 ) int32 {
     return argc;
 }
 
-method Op::Sub main() ptr * this class {
+method Op::Sub main( z *Sub) * this class {
     return &this;
 }

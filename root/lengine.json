@@ -535,6 +535,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "data type doesn't match the element prototype"
+        },"2040" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "unsolvable data type"
         }
     }
 }

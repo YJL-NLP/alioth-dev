@@ -138,7 +138,7 @@ bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
     vector<Type*> pts;
     bool fine = true;
 
-    auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts); 
+    auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts);
     if( !rtp ) fine = false;
 
     auto tss = generateGlobalUniqueName(method->getScope(),method->meta?Meta:None);
@@ -187,16 +187,20 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
 
 bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     
+    auto def = requestPrototype(($implementation)method);
+    if( !def ) {
+        mlogrepo(method->getDocPath())(Lengine::E2029,method->name);
+        for( auto par : *method ) {
+            if( par->proto->dtype->is(typeuc::UnsolvableType) )
+                mlogrepo(method->getDocPath())(Lengine::E2040,par->proto->dtype->phrase);
+        }
+        return false;
+    }
     auto fs = generateGlobalUniqueName(($node)method);
     auto ft = (FunctionType*)mnamedT[fs];
     auto fp = mcurmod->getFunction(fs);
     if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
 
-    auto def = requestPrototype(($implementation)method);
-    if( !def ) {
-        mlogrepo(method->getDocPath())(Lengine::E2029,method->name);
-        return false;
-    }
 
     auto ebb = BasicBlock::Create(mctx,"",fp);
     auto builder = IRBuilder<>(ebb);
@@ -205,7 +209,7 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     for( auto par : *method ) {
         arg += 1;
         arg->setName( (string)par->name );
-        if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::NamedType) ) {
+        if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
             mlocalV[par] = arg;
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
@@ -256,6 +260,8 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
             if( impl->expr ) {
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal );
                 //[TODO] : generateBackendIR for <leave> method
+
+                /**[TODO]: 类型匹配的工作应该统一由类型引擎来处理 **/
                 if( auto proto = v->eproto(); proto->dtype->is(typeuc::PointerType) and (($typeuc)proto->dtype->sub)->is(typeuc::VoidType) ) {
                     auto mep = requestPrototype(($implementation)impl);
                     auto ty = generateTypeUsageAsAttribute(mep->rproto);
@@ -297,7 +303,7 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
     
     auto eve = request( impl->name, NormalClass );
     if( eve.size() == 0 ) {
-        mlogrepo(impl->getDocPath())(Lengine::E2004,impl->name[-1].name);  
+        mlogrepo(impl->getDocPath())(Lengine::E2004,impl->name[-1].name);
         return {};
     }
     for( auto e : eve ) {
@@ -677,16 +683,10 @@ Type* Sengine::performDefinitionSemanticValidation( $AttrDef attr ) {
 }
 
 Type* Sengine::generateTypeUsageAsParameter( $eproto proto ) {
-    if( !proto ) return nullptr;
+    if( !determineElementPrototype(proto) ) return nullptr;
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-
-    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
-        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
-        return nullptr;
-    }
-
     if( proto->elmt == REL or proto->elmt == REF or proto->elmt == OBJ and ty->isStructTy() ) {
         ty = ty->getPointerTo();
     }
@@ -695,14 +695,10 @@ Type* Sengine::generateTypeUsageAsParameter( $eproto proto ) {
 }
 
 Type* Sengine::generateTypeUsageAsAttribute( $eproto proto ) {
-    if( !proto ) return nullptr;
+    if( !determineElementPrototype(proto) ) return nullptr;
 
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
-        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
-        return nullptr;
-    }
     if( proto->elmt == REL or proto->elmt == REF )
         ty = ty->getPointerTo();
 
@@ -711,12 +707,9 @@ Type* Sengine::generateTypeUsageAsAttribute( $eproto proto ) {
 
 Type* Sengine::generateTypeUsageAsReturnValue( $eproto proto, vector<Type*>& pts ) {
     if( !proto ) return Type::getVoidTy(mctx);
+    if( !determineElementPrototype(proto) ) return nullptr;
     Type* ty = generateTypeUsage(proto->dtype);
     if( !ty ) return nullptr;
-    if( proto->elmt == PTR and !ty->isPointerTy() or proto->elmt == OBJ and ty->isPointerTy() ) {
-        mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
-        return nullptr;
-    }
     if( ty->isStructTy() ) {
         pts.insert(pts.begin(),ty->getPointerTo());
         return Type::getInt64Ty(mctx);
@@ -738,7 +731,7 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
             case typeuc::Float32                    :  return Type::getFloatTy(mctx);   break;
             case typeuc::Float64                    :  return Type::getDoubleTy(mctx);  break;
         }
-    } else if( type->is(typeuc::NamedType) ) {
+    } else if( type->is(typeuc::UndeterminedType) ) {
         return generateTypeUsage(determineDataType(type));
     } else if( type->is(typeuc::CompositeType) ) {
         auto symbol = generateGlobalUniqueName(($node)type->sub);
@@ -753,22 +746,12 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
 }
 
 $typeuc Sengine::determineDataType( $typeuc type ) {
-    auto eve = everything();
     if( type->is(typeuc::NamedType) ) {
-        if( type->name.size() ) {
-            eve = request( type->name, NormalClass );
-        }else if( auto scope = ($definition)type->sub; scope ) {
-            while( scope and !scope->is(CLASSDEF) ) scope = scope->getScope();
-            if( scope ) eve << (anything)scope;
-        } else if( auto def = requestThisClass(($implementation)type->sub); def ) {
-            eve << (anything)def;
-        } else {
-            //[TODO]: 抛出异常
-            return nullptr;
-        }
+        auto eve = request( type->name, NormalClass );
 
         if( eve.size() != 1 ) {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
             return nullptr;
         }
         if( auto cdef = ($ClassDef)eve[0]; cdef ) {
@@ -777,7 +760,33 @@ $typeuc Sengine::determineDataType( $typeuc type ) {
             return type;
         } else {
             type->id = typeuc::UnsolvableType;
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2004,type->name[-1].name);
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+    } else if( type->is(typeuc::ThisClassType) ) {
+        if( auto scope = ($definition)type->sub; scope ) {
+            while( scope and !scope->is(CLASSDEF) ) scope = scope->getScope();
+            if( scope ) {
+                type->sub = scope;
+                type->name *= scope->name;
+                type->id = typeuc::CompositeType;
+                return type;
+            } else {
+                type->id = typeuc::UnsolvableType;
+                mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                    (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+                return nullptr;
+            }
+        } else if( auto def = requestThisClass(($implementation)type->sub); def ) {
+            type->sub = def;
+            type->name *= scope->name;
+            type->id = typeuc::CompositeType;
+            return type;
+        } else {
+            type->id = typeuc::UnsolvableType;
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
             return nullptr;
         }
     } else if( type->is(typeuc::UndeterminedType) ) {
@@ -785,6 +794,27 @@ $typeuc Sengine::determineDataType( $typeuc type ) {
     } else {
         return type;
     }
+}
+
+$eproto Sengine::determineElementPrototype( $eproto proto ) {
+    if( !proto ) return nullptr;
+    if( !determineDataType(proto->dtype) ) return nullptr;
+    if( proto->elmt == UDF ) {
+        if( proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
+        else proto->elmt = PTR;
+    }  else if( proto->elmt == PTR ) {
+        if( !proto->dtype->is(typeuc::PointerType) ) {
+            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+            return nullptr;
+        }
+    } else if( proto->elmt == OBJ ) {
+        if( proto->dtype->is(typeuc::PointerType) ) {
+            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+            return nullptr;
+        }
+    }
+
+    return proto;
 }
 
 std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
@@ -987,6 +1017,7 @@ $MethodDef Sengine::requestPrototype( $implementation impl ) {
     auto sname = (string)met->name;
 
     for( auto def : scope->instdefs + scope->metadefs ) if( auto mdef = ($MethodDef)def; mdef and (string)mdef->name == sname ) {
+        if( mdef->size() != met->size() ) continue;
         auto arg = met->begin();
         bool found = true;
         for( auto par : *mdef ) {
@@ -1010,7 +1041,7 @@ Value* Sengine::requestThis( $implementation impl ) {
 }
 
 bool Sengine::checkEquivalent( $eproto dst, $eproto src ) {
-    if( !dst or !src ) return false;
+    if( !determineElementPrototype(dst) or !determineElementPrototype(src) ) return false;
     if( (bool)dst->cons xor (bool)src->cons ) return false;
     if( dst->elmt != src->elmt ) return false;
     return checkEquivalent( dst->dtype, src->dtype );
