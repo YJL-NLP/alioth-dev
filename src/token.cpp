@@ -157,17 +157,34 @@ bool token::is( CT v )const {
         case CT::OPL:
             return is(
                 VN::OPL_INDEX,CT::OPL_ASSIGN,
-                VN::OPL_SCTOR, VN::OPL_LCTOR, VN::OPL_CCTOR, VN::OPL_MCTOR, VN::OPL_DTOR, VN::OPL_MEMBER, VN::OPL_WHERE, VN::OPL_MOVE,
-                VN::OPL_NEGATIVE, VN::OPL_BITREV, VN::OPL_INCREASE, VN::OPL_DECREASE,
+                VN::OPL_SCTOR, VN::OPL_LCTOR, VN::OPL_CCTOR, VN::OPL_MCTOR, VN::OPL_DTOR, VN::OPL_MEMBER, VN::OPL_WHERE, VN::OPL_MOVE,VN::OPL_AS,
+                VN::OPL_NEGATIVE, VN::OPL_BITREV, VN::OPL_INCREASE, VN::OPL_DECREASE,VN::OPL_NOT,
                 VN::OPL_ADD, VN::OPL_SUB, VN::OPL_MUL, VN::OPL_DIV, VN::OPL_MOL,
                 VN::OPL_BITAND, VN::OPL_BITOR, VN::OPL_BITXOR, VN::OPL_SHL, VN::OPL_SHR,
-                VN::OPL_LT, VN::OPL_GT, VN::OPL_LE, VN::OPL_GE, VN::OPL_EQ, VN::OPL_NE
+                VN::OPL_LT, VN::OPL_GT, VN::OPL_LE, VN::OPL_GE, VN::OPL_EQ, VN::OPL_NE,
+                VN::OPL_AND,VN::OPL_OR,VN::OPL_XOR
             );
         case CT::OPL_ASSIGN:
             return is(
                 VN::OPL_ASSIGN,
                 VN::OPL_ASSIGN_ADD, VN::OPL_ASSIGN_SUB, VN::OPL_ASSIGN_MUL, VN::OPL_ASSIGN_DIV, VN::OPL_ASSIGN_MOL,
                 VN::OPL_ASSIGN_SHL, VN::OPL_ASSIGN_SHR, VN::OPL_ASSIGN_BITAND, VN::OPL_ASSIGN_BITOR, VN::OPL_ASSIGN_BITXOR
+            );
+        case CT::OPL_SPECIAL:
+            return is(
+                VN::OPL_SCTOR, VN::OPL_LCTOR, VN::OPL_CCTOR, VN::OPL_MCTOR, VN::OPL_DTOR, VN::OPL_WHERE, VN::OPL_MOVE, VN::OPL_MEMBER, VN::OPL_AS
+            );
+        case CT::OPL_MONO:
+            return is(
+                VN::OPL_NEGATIVE, VN::OPL_BITREV, VN::OPL_INCREASE, VN::OPL_DECREASE, VN::OPL_NOT
+            );
+        case CT::OPL_BINO:
+            return is(
+                CT::OPL_ASSIGN,
+                VN::OPL_ADD,VN::OPL_SUB,VN::OPL_MUL,VN::OPL_DIV,VN::OPL_MOL,
+                VN::OPL_BITAND,VN::OPL_BITOR,VN::OPL_BITXOR,VN::OPL_SHL,VN::OPL_SHR,
+                VN::OPL_LT,VN::OPL_GT,VN::OPL_LE,VN::OPL_GE,VN::OPL_EQ,VN::OPL_NE,
+                VN::OPL_AND,VN::OPL_OR,VN::OPL_XOR
             );
         default:
             return false;

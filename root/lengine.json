@@ -540,6 +540,46 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "unsolvable data type"
+        },"2041" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "only 'ref this class' is allowed to be returned in assign operator"
+        },"2042" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid parameter list for default assign operator"
+        },"2043" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid parameter definition for default assign operator"
+        },"2044" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "too many parameters for this operator"
+        },"2045" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid modifier '%R0' for this operator"
+        },"2046":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "too few parameters for this operator"
+        },"2047":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid data type for operator 'as' "
+        },"2048":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "overriding operator for transparent class is not allowed"
         }
     }
 }

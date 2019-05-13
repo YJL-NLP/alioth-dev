@@ -249,7 +249,7 @@ class Yengine {
          * @desc :
          *  从记号流中分析一个运算符标签。
          */
-        token constructOperatorLabel( tokens::iterator& it, Lengine::logs& log, token& sub );
+        token constructOperatorLabel( tokens::iterator& it, Lengine::logs& log, $scope sc, morpheme::opsig& sub );
 
     public:
 

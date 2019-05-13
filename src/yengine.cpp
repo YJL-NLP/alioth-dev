@@ -156,7 +156,7 @@ nameuc Yengine::constructNameUseCase( tokens::iterator& it, Lengine::logs& log, 
     return ret;
 }
 
-token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log, token& sub ) {
+token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log, $scope sc, morpheme::opsig& sig ) {
     smachine stack = smachine(it);
     stack.movi(1,0);
     
@@ -166,6 +166,8 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
                 stack.movi(110);
             } else if( it->is(VT::OPENL) ) {
                 stack.movi(120);
+            } else if( it->is(VT::AS) ) {
+                stack.movi(133);
             } else if( it->is(CT::LB_SCTOR) ) {
                 stack.redu(1,VN::OPL_SCTOR);
             } else if( it->is(CT::LB_LCTOR) ) {
@@ -176,8 +178,6 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
                 stack.redu(1,VN::OPL_MCTOR);
             } else if( it->is(CT::LB_DTOR) ) {
                 stack.redu(1,VN::OPL_DTOR);
-            } else if( it->is(VT::AS) ) {
-                stack.redu(1,VN::OPL_AS);
             } else if( it->is(CT::LB_MOVE) ) {
                 stack.redu(1,VN::OPL_MOVE);
             } else if( it->is(CT::LB_NEGATIVE) ) {
@@ -297,7 +297,7 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
             } break;
         case 130:
             if( it->is(VT::LABEL) ) {
-                sub = *it;
+                sig.subtitle = *it;
                 stack.redu(2,VN::OPL_MEMBER);
             } else {
                 log(Lengine::E2036,*it);
@@ -305,7 +305,7 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
             } break;
         case 131:
             if( it->is(VT::iINTEGERn) ) {
-                sub = *it;
+                sig.subtitle = *it;
                 stack.redu(2,VN::OPL_WHERE);
             } else {
                 log(Lengine::E2036,*it);
@@ -334,6 +334,14 @@ token Yengine::constructOperatorLabel( tokens::iterator& it, Lengine::logs& log,
                 stack.redu(2,VN::OPL_ASSIGN_BITXOR);
             } else {
                 stack.redu(-2,VN::OPL_ASSIGN);
+            } break;
+        case 133:
+            if( it->is(VN::TYPEUC) ) {
+                stack.redu(2,VN::OPL_AS);
+            } else if( auto type = constructDataType(it,log,sc,true); type ) {
+                sig.rproto = eproto::MakeUp(sc,REF,type);
+            } else {
+                return VT::R_ERR;
             } break;
     }
 
@@ -1322,7 +1330,7 @@ $OperatorDef Yengine::constructOperatorDefinition( tokens::iterator& it, Lengine
             } else if( it->is(CT::OPL) ) {
                 stack.movi(3);
             } else {
-                auto name = constructOperatorLabel(it,log,ret->subtitle);
+                auto name = constructOperatorLabel(it,log,ret,*ret);
                 if( !name ) return nullptr;
                 ret->name = name;
             } break;
@@ -1333,7 +1341,7 @@ $OperatorDef Yengine::constructOperatorDefinition( tokens::iterator& it, Lengine
                 return nullptr;
             } break;
         case 4:
-            if( ret->name.is(VN::OPL_SCTOR,VN::OPL_LCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR,VN::OPL_DTOR,VN::OPL_MOVE) ) {
+            if( ret->name.is(VN::OPL_SCTOR,VN::OPL_LCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR,VN::OPL_DTOR,VN::OPL_MOVE,VN::OPL_AS) ) {
                 stack.redu(-4,VN::OPERATOR);
             } else if( it->is(VN::PROTO) ) {
                 stack.redu(4,VN::OPERATOR);
@@ -1357,7 +1365,7 @@ $OperatorDef Yengine::constructOperatorDefinition( tokens::iterator& it, Lengine
                 return nullptr;
             } break;
         case 7:
-            if( auto name = constructOperatorLabel(it,log,ret->subtitle); name ) {
+            if( auto name = constructOperatorLabel(it,log,ret,*ret); name ) {
                 ret->name = name;
                 stack.redu(4,VN::OPERATOR);
             } else {

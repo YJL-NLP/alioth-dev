@@ -95,7 +95,7 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
                 nameT[(string)def->name] = def;
                 members.push_back(mty);
                 if( !mty ) fine = false;
-            }  else if( auto mdef = ($MethodDef)def; mdef ) {
+            } else if( auto mdef = ($MethodDef)def; mdef ) {
                 auto symbol = generateGlobalUniqueName(($node)mdef);
                 if( nameT.count(symbol) ) {
                     auto prev = nameT[symbol];
@@ -104,6 +104,9 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
                 } else {
                     fine = performDefinitionSemanticValidation(mdef) and fine;
                 }
+            } else if( auto odef = ($OperatorDef)def; odef ) {
+                //[TODO]: 检查重复
+                fine = performDefinitionSemanticValidation(odef) and fine;
             }
         }
         ((StructType*)slot)->setBody(members);
@@ -161,18 +164,26 @@ bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
 
 bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
     
+    bool err = false;
     if( opdef->action ) {
         if( opdef->action.is(VT::DELETE) ) {
-            if( !opdef->name.is(VN::OPL_SCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR) ) {
-                mlogrepo(opdef->getDocPath())(Lengine::E2037,opdef->name);
-                return false;
-            }
+            if( !opdef->name.is(VN::OPL_SCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR) ) 
+                {mlogrepo(opdef->getDocPath())(Lengine::E2037,opdef->name);return false;}
             return true;
         } else if( opdef->action.is(VT::DEFAULT) ) {
-            if( !opdef->name.is(VN::OPL_ASSIGN) ) {
-                mlogrepo(opdef->getDocPath())(Lengine::E2038,opdef->name);
-                //[TODO]: 检查参数列表和返回元素
-            }
+            if( !opdef->name.is(VN::OPL_ASSIGN) ) {mlogrepo(opdef->getDocPath())(Lengine::E2038,opdef->name);return false;}
+
+            if( !determineElementPrototype(opdef->rproto) ) err = true;
+            if( opdef->rproto->elmt != REF or opdef->rproto->dtype->sub != opdef->getScope() ) 
+                {mlogrepo(opdef->getDocPath())(Lengine::E2041,opdef->rproto->phrase);err = true;}
+            if( opdef->size() != 1 or !determineElementPrototype((*opdef)[0]->proto) ) 
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);err = true;} 
+            else if( auto proto = (*opdef)[0]->proto; 
+                !proto->dtype->is(typeuc::CompositeType) or
+                proto->dtype->sub != opdef->getScope() or
+                not ((proto->elmt == REF and (bool)proto->cons) or (proto->elmt == REL and !(bool)proto->cons) )
+            ) {mlogrepo(opdef->getDocPath())(Lengine::E2043,proto->phrase);err = true;}
+            if( err ) return false;
             //[TODO]: 产生默认运算符体
             return true;
         } else {
@@ -181,7 +192,54 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
     }
 
     //[TODO]: 检查其他细节。
+    if( opdef->rproto and !determineElementPrototype(opdef->rproto) ) err = true;
+    for( auto par : *opdef ) if( !determineElementPrototype(par->proto) ) err = true;
 
+    if( opdef->name.is(CT::OPL_ASSIGN) ) {
+        if( opdef->rproto->elmt != REF or opdef->rproto->dtype->sub != opdef->getScope() )
+            {mlogrepo(opdef->getDocPath())(Lengine::E2041,opdef->rproto->phrase);err = true;}
+        if( opdef->size() > 1 )
+            {mlogrepo(opdef->getDocPath())(Lengine::E2044,opdef->phrase);err = true;}
+        if( opdef->size() < 1 ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
+        if( opdef->modifier ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+    } else if( opdef->name.is(VN::OPL_INDEX) ) {
+        if( opdef->size() > 1 )
+            {mlogrepo(opdef->getDocPath())(Lengine::E2044,opdef->phrase);err = true;}
+        if( opdef->size() < 1 ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
+        if( opdef->modifier ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+    } else if( opdef->name.is(CT::OPL_BINO) ) {
+        if( opdef->size() > 1 )
+            {mlogrepo(opdef->getDocPath())(Lengine::E2044,opdef->phrase);err = true;}
+        if( opdef->size() < 1 ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
+        if( opdef->modifier.is(CT::MF_PREFIX,CT::MF_SUFFIX) ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+    } else if( opdef->name.is(CT::OPL_MONO) ) {
+        if( opdef->size() > 1 )
+            {mlogrepo(opdef->getDocPath())(Lengine::E2044,opdef->phrase);err = true;}
+        if( opdef->size() < 1 ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
+        if( opdef->modifier.is(CT::MF_ISM,CT::MF_REV) ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+    } else if( opdef->name.is(CT::OPL_SPECIAL) ) {
+        if( opdef->modifier ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+        if( opdef->name.is(VN::OPL_AS) ) {
+            if( opdef->size() > 0 )
+                {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
+            if( opdef->rproto->dtype->is(typeuc::VoidType) or opdef->rproto->dtype->is(typeuc::UnknownType) or opdef->rproto->dtype->sub == opdef->getScope() ) {
+                {mlogrepo(opdef->getDocPath())(Lengine::E2047,opdef->rproto->phrase);err = true;}
+            }
+        } else if( opdef->name.is(VN::OPL_MOVE) ) {
+            //[TODO]: 检查更多细节 。。。
+        }
+    }
+
+    if( err ) return false;
     return true;
 }
 
@@ -1112,6 +1170,7 @@ Sengine::Sengine() {
 int Sengine::loadModuleDefinition( $modesc mod ) {
 
     if( mrepo.count(mod) ) return 1;
+    auto err = false;
     auto& root = mrepo[mod] = new module;
     root->desc = mod;
     root->name = mod->name;
@@ -1156,6 +1215,7 @@ int Sengine::loadModuleDefinition( $modesc mod ) {
                     for( auto inst : trans->instdefs ) {
                         if( auto m = ($MethodDef)inst; m and !m->meta ) m->meta = token(VT::META);
                         else if( auto a = ($AttrDef)inst; a and !a->meta ) a->meta = token(VT::META);
+                        else if( auto o = ($OperatorDef)inst; o ) {mlogrepo(trans->getDocPath())(Lengine::E2048,o->phrase);err = true;}
                     }
                     root->internal += trans->internal;
                     trans->metadefs = root->metadefs += trans->metadefs + trans->instdefs;
@@ -1170,6 +1230,7 @@ int Sengine::loadModuleDefinition( $modesc mod ) {
         root->impls += syn->impls;
     }
 
+    if( err ) return 0;
     if( root->es ) return 2;
     else return 1;
 }

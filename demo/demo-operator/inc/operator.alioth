@@ -5,11 +5,9 @@ class Op {
 
     class Sub {
         method main( x *Sub ) * this class
+        operator ()
     }
 
-    operator le () Type
-
-    operator . op () int32
 }
 
 method Op main( argc int32, argv **int8 ) int32 {

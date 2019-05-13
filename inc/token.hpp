@@ -28,7 +28,10 @@ enum class CT {
 
     IMPLEMENTATION,     //表达式,分支,循环,流控制,块
     OPL,                //运算符标签
+    OPL_SPECIAL,        //特化运算符标签
     OPL_ASSIGN,         //赋值运算符标签
+    OPL_MONO,           //单目运算符标签
+    OPL_BINO,           //双目运算符标签
 
     /**
      * 约定标签

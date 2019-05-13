@@ -12,7 +12,7 @@ namespace alioth {
  * @desc :
  *  运算符实现语法结构
  */
-struct OperatorImpl : public implementation, public morpheme::plist {
+struct OperatorImpl : public implementation, public morpheme::plist, public morpheme::opsig {
 
     public:
 
@@ -29,20 +29,6 @@ struct OperatorImpl : public implementation, public morpheme::plist {
          *  运算符标签确定运算符的结构
          */
         token name;
-
-        /**
-         * @member subtitle : 副标题
-         * @desc :
-         *  有些运算符携带副标题
-         */
-        token subtitle;
-
-        /**
-         * @member midifier : 修饰符
-         * @desc:
-         *  运算符可以携带的修饰符。
-         */
-        token modifier;
 
         /**
          * @member body : 运算符体

@@ -6,7 +6,7 @@
 namespace alioth {
 
 bool OperatorImpl::is( cnode n )const {
-    return n == OPERATORIMPL;
+    return n == OPERATORIMPL or n == IMPLEMENTATION;
 }
 
 }

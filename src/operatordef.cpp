@@ -6,7 +6,7 @@
 namespace alioth {
 
 bool OperatorDef::is( cnode n )const {
-    return n == OPERATORDEF;
+    return n == OPERATORDEF or n == DEFINITION;
 }
 
 }
