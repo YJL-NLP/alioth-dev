@@ -141,6 +141,13 @@ struct opsig {
          *  修饰符的取值范围: {rev,ism,prefix,suffix}
          */
         token modifier;
+
+        /**
+         * @member constraint : 约束
+         * @desc :
+         *  运算符是否被约束为不能修改this对象。
+         */
+        token constraint;
 };
 
 struct ctor : public map<token,$ExpressionImpl> {

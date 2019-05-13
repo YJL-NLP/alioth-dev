@@ -1309,6 +1309,7 @@ $OperatorDef Yengine::constructOperatorDefinition( tokens::iterator& it, Lengine
                         log(Lengine::E301,ret->action);
                         log(Lengine::E301,*it);
                     }
+                    return nullptr;
                 }
                 ret->action = *it;
                 stack.stay();
@@ -1321,12 +1322,21 @@ $OperatorDef Yengine::constructOperatorDefinition( tokens::iterator& it, Lengine
                         log(Lengine::E301,ret->modifier);
                         log(Lengine::E301,*it);
                     }
+                    return nullptr;
                 }
                 ret->modifier = *it;
                 stack.stay();
             } else if( it->is(VT::PUBLIC,VT::PRIVATE) ) {
                 log(Lengine::E2034,*it);
                 return nullptr;
+            } else if( it->is(VT::CONST) ) {
+                if( ret->constraint ) {
+                    log(Lengine::E302,ret->constraint);
+                    log(Lengine::E302,*it);
+                    return nullptr;
+                }
+                ret->constraint = *it;
+                stack.stay();
             } else if( it->is(CT::OPL) ) {
                 stack.movi(3);
             } else {

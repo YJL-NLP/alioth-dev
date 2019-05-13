@@ -11,6 +11,7 @@
 #include "branchimpl.hpp"
 #include "operatordef.hpp"
 #include "flowctrlimpl.hpp"
+#include "operatorimpl.hpp"
 #include "typeconvertdiagram.hpp"
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/IR/DerivedTypes.h>

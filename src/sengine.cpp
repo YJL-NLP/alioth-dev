@@ -204,6 +204,8 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
             {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);err = true;}
         if( opdef->modifier ) 
             {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
+        if( opdef->constraint ) 
+            {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);err = true;}
     } else if( opdef->name.is(VN::OPL_INDEX) ) {
         if( opdef->size() > 1 )
             {mlogrepo(opdef->getDocPath())(Lengine::E2044,opdef->phrase);err = true;}
@@ -880,6 +882,57 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
     string suffix;
     string domain;
 
+    auto nameProc = []( token name ) -> string {
+        switch( name.in ) {
+            case VN::OPL_SCTOR: return "sctor";
+            case VN::OPL_LCTOR: return "lctor";
+            case VN::OPL_CCTOR: return "cctor";
+            case VN::OPL_MCTOR: return "mctor";
+            case VN::OPL_DTOR: return "dtor";
+            case VN::OPL_AS: return "as";
+            case VN::OPL_MEMBER: return "member";
+            case VN::OPL_WHERE: return "where";
+            case VN::OPL_MOVE: return "move";
+            case VN::OPL_NEGATIVE: return "negative";
+            case VN::OPL_BITREV: return "bitrev";
+            case VN::OPL_INCREASE: return "increase";
+            case VN::OPL_DECREASE: return "decrease";
+            case VN::OPL_INDEX: return "index";
+            case VN::OPL_ADD: return "add";
+            case VN::OPL_SUB: return "sub";
+            case VN::OPL_MUL: return "mul";
+            case VN::OPL_DIV: return "div";
+            case VN::OPL_MOL: return "mol";
+            case VN::OPL_BITAND: return "bitand";
+            case VN::OPL_BITOR: return "bitor";
+            case VN::OPL_BITXOR: return "bitxor";
+            case VN::OPL_SHL: return "shl";
+            case VN::OPL_SHR: return "shr";
+            case VN::OPL_LT: return "lt";
+            case VN::OPL_GT: return "gt";
+            case VN::OPL_LE: return "le";
+            case VN::OPL_GE: return "ge";
+            case VN::OPL_EQ: return "eq";
+            case VN::OPL_NE: return "ne";
+            case VN::OPL_AND: return "and";
+            case VN::OPL_OR: return "or";
+            case VN::OPL_XOR: return "xor";
+            case VN::OPL_NOT: return "not";
+            case VN::OPL_ASSIGN: return "assign";
+            case VN::OPL_ASSIGN_ADD: return "assign.add";
+            case VN::OPL_ASSIGN_SUB: return "assign.sub";
+            case VN::OPL_ASSIGN_MUL: return "assign.mul";
+            case VN::OPL_ASSIGN_DIV: return "assign.div";
+            case VN::OPL_ASSIGN_MOL: return "assign.mol";
+            case VN::OPL_ASSIGN_SHL: return "assign.shl";
+            case VN::OPL_ASSIGN_SHR: return "assign.shr";
+            case VN::OPL_ASSIGN_BITAND: return "assign.bitand";
+            case VN::OPL_ASSIGN_BITOR: return "assign.bitor";
+            case VN::OPL_ASSIGN_BITXOR: return "assin.bitxor";
+            default: return (string)name;
+        }
+    };
+
     if( auto list = dynamic_cast<morpheme::plist*>((node*)n); list ) for( auto pd : *list ) {
         suffix += ".";
         if( pd->proto->cons ) suffix += "C";
@@ -904,6 +957,7 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         }
 
         switch( dtype->id ) {
+            case typeuc::ThisClassType: suffix += "T";break;
             case typeuc::UnknownType:   suffix += "U";break;
             case typeuc::BooleanType:   suffix += "b";break;
             case typeuc::Int8:          suffix += "i8";break;
@@ -925,13 +979,21 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
 
     if( auto impl = ($MethodImpl)n; impl ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
-        domain += "." + (string)impl->name;
+        domain += "." + nameProc(impl->name);
+        if( impl->constraint ) suffix = "const." + suffix;
+    } else if( auto impl = ($OperatorImpl)n; impl ) {
+        for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
+        domain += "." + nameProc(impl->name);
+        if( impl->constraint ) suffix = "const." + suffix;
+    } else {
+        for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + nameProc(def->name) + domain;
     }
-    for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + (string)def->name + domain;
     
-    if( n->is(METHODDEF) ) prefix = "method";
-    else if( n->is(METHODIMPL) ) prefix = "method";
-    else if( n->is(DEFINITION) ) prefix = "class";
+    if( n->is(METHODDEF) ) prefix += "method";
+    else if( n->is(OPERATORDEF) ) prefix += "operator";
+    else if( n->is(METHODIMPL) ) prefix += "method";
+    else if( n->is(OPERATORIMPL) ) prefix += "operator";
+    else if( n->is(DEFINITION) ) prefix += "class";
 
     switch( dec ) {
         case None:break;
