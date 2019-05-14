@@ -256,6 +256,7 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             break;
         case 16:
             if( pre == 'e' ) state = 17;
+            else if( pre == 'o' ) test(VT::DO, 1);
             else if( islabel(pre) ) state = 4;
             else check(VT::LABEL,false);
             break;
@@ -557,6 +558,7 @@ void Xengine::init() {
         __table[(int)VT::OR] = "or";
         __table[(int)VT::NOT] = "not";
         __table[(int)VT::AS] = "as";
+        __table[(int)VT::DO] = "do";
     }
 }
 
