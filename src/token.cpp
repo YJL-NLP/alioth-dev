@@ -124,13 +124,14 @@ bool token::is( CT v )const {
         case CT::MF_PREFIX: return tx == "prefix";
         case CT::MF_SUFFIX: return tx == "suffix";
         case CT::MF_ATOMIC: return tx == "atomic";
+        case CT::MF_RAW: return tx == "raw";
         case CT::LB_SCTOR: return tx == "sctor";
         case CT::LB_LCTOR: return tx == "lctor";
         case CT::LB_CCTOR: return tx == "cctor";
         case CT::LB_MCTOR: return tx == "mctor";
         case CT::LB_DTOR: return tx == "dtor";
         case CT::LB_MEMBER: return tx == "member" or is(VT::MEMBER);
-        case CT::LB_WHERE: return tx == "locate" or is(VT::WHERE);
+        case CT::LB_WHERE: return tx == "where" or is(VT::WHERE);
         case CT::LB_MOVE: return tx == "move";
         case CT::LB_NEGATIVE: return tx == "negative";
         case CT::LB_BITREV: return tx == "bitrev" or is(VT::BITREV);
@@ -186,6 +187,8 @@ bool token::is( CT v )const {
                 VN::OPL_LT,VN::OPL_GT,VN::OPL_LE,VN::OPL_GE,VN::OPL_EQ,VN::OPL_NE,
                 VN::OPL_AND,VN::OPL_OR,VN::OPL_XOR
             );
+        case CT::PP_ON: return tx == "on";
+        case CT::PP_THEN: return tx == "then";
         default:
             return false;
     }

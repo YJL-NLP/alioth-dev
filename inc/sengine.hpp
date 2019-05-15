@@ -257,6 +257,11 @@ class Sengine {
          */
         bool performDefinitionSemanticValidation( $MethodDef method );
 
+        /**
+         * @method preformDefinitinoSemanticValidation : 执行定义语义检查
+         * @desc :
+         *  分析运算符定义语义检查
+         */
         bool performDefinitionSemanticValidation( $OperatorDef opdef );
 
         /**

@@ -44,6 +44,7 @@ enum class CT {
     MF_PREFIX,
     MF_SUFFIX,
     MF_ATOMIC,
+    MF_RAW,
     LB_SCTOR,
     LB_LCTOR,
     LB_CCTOR,
@@ -74,6 +75,8 @@ enum class CT {
     LB_EQ,
     LB_NE,
     LB_ASSIGN,
+    PP_THEN,
+    PP_ON,
 };
 
 /**
