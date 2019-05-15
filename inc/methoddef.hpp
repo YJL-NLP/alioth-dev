@@ -43,6 +43,14 @@ struct MethodDef : public definition, public morpheme::plist {
          *  若此成员有效,则方法成为原子操作,或称同步方法.
          */
         token atomic;
+
+        /**
+         * @member raw : 原始符号
+         * @desc :
+         *  标记此方法的符号使用原始符号
+         *  VT::iSTRING和VT::LABEL
+         */
+        token raw;
     
     public:
 

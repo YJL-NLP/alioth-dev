@@ -1035,13 +1035,29 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
         domain += "." + nameProc(impl->name);
         if( impl->constraint ) suffix = "const." + suffix;
+        if( auto pro = requestPrototype(($implementation)impl);pro and pro->raw ) {
+            if( pro->raw.is(VT::iSTRING) ) return Xengine::extractText(pro->raw);
+            else return impl->name;
+        }
     } else if( auto impl = ($OperatorImpl)n; impl ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
         domain += "." + nameProc(impl->name);
         if( impl->constraint ) suffix = "const." + suffix;
-    } else {
-        for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + nameProc(def->name) + domain;
+        if( impl->modifier ) suffix = (string)impl->modifier + "." + suffix;
+        if( impl->subtitle ) suffix = (string)impl->subtitle + "." + suffix;
+    } else if( auto def = ($MethodDef)n; def ) {
+        if( def->raw ) {
+            if( def->raw.is(VT::iSTRING) ) return Xengine::extractText(def->raw);
+            else return def->name;
+        }
+        if( def->constraint ) suffix = "const." + suffix;
+    } else if( auto def = ($OperatorDef)n; def ) {
+        if( def->constraint ) suffix = "const." + suffix;
+        if( def->modifier ) suffix = (string)def->modifier + "." + suffix;
+        if( def->subtitle ) suffix = (string)def->subtitle + "." + suffix;
     }
+
+    for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + nameProc(def->name) + domain;
     
     if( n->is(METHODDEF) ) prefix += "method";
     else if( n->is(OPERATORDEF) ) prefix += "operator";

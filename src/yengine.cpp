@@ -1180,6 +1180,16 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
                 if( !pars ) return nullptr;
             } else if( it->is(VN::PARAM_LIST) ) {
                 stack.movi(3);
+            } else if( it->is(CT::MF_RAW) ) {
+                if( ret->raw ) {
+                    log(Lengine::E302,ret->meta);
+                    log(Lengine::E302,*it);
+                    return nullptr;
+                }
+                ret->raw = *it;
+                stack.movi(4);
+            } else if( it->is(VN::RAW) ) {
+                stack.stay();
             } else {
                 log(Lengine::E305,*it);
                 return nullptr;
@@ -1196,6 +1206,13 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
                 ret->rproto = move(proto);
             } else {
                 return nullptr;
+            } break;
+        case 4:
+            if( it->is(VT::iSTRING) ) {
+                ret->raw = *it;
+                stack.redu(1,VN::RAW);
+            } else {
+                stack.redu(-1,VN::RAW);
             } break;
     }
 

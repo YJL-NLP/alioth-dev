@@ -88,6 +88,8 @@ enum class VN {
     OPL_ASSIGN_BITAND,
     OPL_ASSIGN_BITOR,
     OPL_ASSIGN_BITXOR,
+
+    RAW,
 };
 
 }
