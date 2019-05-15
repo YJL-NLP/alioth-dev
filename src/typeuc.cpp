@@ -59,6 +59,16 @@ void typeuc::setScope( $scope sc ) {
     if( auto subt = ($typeuc)sub; subt ) subt->setScope(sc);
 }
 
+$typeuc typeuc::dup() const{
+    auto n = new typeuc;
+    n->id = id;
+    n->name = name;
+    if( auto s = ($typeuc)n->sub; s ) n->sub = s->dup();
+    else n->sub = sub;
+    n->phrase = phrase;
+    return n;
+}
+
 }
 
 #endif

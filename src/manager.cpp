@@ -390,7 +390,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     } else {
         args.push_back("ar");
         args.push_back("-rcs");
-        args.push_back(mdengine.getPath("",Work|Arc) + appname + ".a");
+        args.push_back(mdengine.getPath("",Work|Arc) + "lib" + appname + ".a");
         if( whichCmd(cmd,"ar") ) {cout << "cannot find command \"ar\"" << endl;bfine = false;}
     }
 

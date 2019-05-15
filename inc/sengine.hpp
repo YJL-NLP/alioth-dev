@@ -399,7 +399,28 @@ class Sengine {
          *  注意区分[不可转换]与[检测失败]两种情况的不同.
          */
         $tcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
-        // $tcp checkCompatibility( $eproto dst, $eproto src, Situation s ); //[TODO]: 算法尚未确定
+        // $tcp checkCompatibility( $eproto dst, $eproto src, Situation s );
+
+        /**
+         * @method tcd_get_node : 获取类型转换图上的节点
+         * @desc :
+         *  此方法要determine数据类型
+         *  然后调用checkEquivalent检查全等性
+         *  若存在全等的数据类型，则返回之
+         *  若不存在全等的数据类型，则创建一个返回之。
+         *  若数据类型无效，则返回空
+         */
+        $typeuc tcd_get_node( $typeuc t );
+
+        /**
+         * @method tcd_add_edge : 添加一条边
+         * @desc :
+         *  此方法会调用tcd_get_node 来确定节点
+         *  若已经存在一模一样的边，则无动作，返回成功
+         *  若数据类型无效，则返回失败
+         */
+        bool tcd_add_edge( $typeuc dst, $typeuc src, ConvertAction ca );
+
     public:
 
         /**

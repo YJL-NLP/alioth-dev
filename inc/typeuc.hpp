@@ -124,6 +124,13 @@ class typeuc : public thing {
          *  若有必要,为数据类型设置作用域
          */
         void setScope( $scope sc );
+
+        /**
+         * @method dup : 拷贝
+         * @desc :
+         *  拷贝数据类型用例
+         */
+        $typeuc dup() const;
 };
 
 }

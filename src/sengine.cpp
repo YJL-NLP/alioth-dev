@@ -1280,6 +1280,34 @@ $tcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
     return nullptr;
 }
 
+$typeuc Sengine::tcd_get_node( $typeuc t ) {
+    if( !determineDataType(t) ) return nullptr;
+    if( mtcd.cachen.count(t) ) return mtcd.cachen[t];
+    for( auto n : mtcd.node ) if( checkEquivalent(n,t) ) {
+        mtcd.cachen[t] = n;
+        return n;
+    }
+    auto nt = t->dup();
+    mtcd.node << nt;
+    mtcd.cachen[t] = nt;
+    mtcd.cachen[nt] = nt;
+    return nt;
+}
+
+bool Sengine::tcd_add_edge( $typeuc dst, $typeuc src, ConvertAction ca ) {
+    auto ndst = tcd_get_node(dst);
+    auto nsrc = tcd_get_node(src);
+    if( !ndst or !nsrc ) return false;
+    if( ca == Nocando ) return false;
+    if( mtcd.in.count(ndst) ) for( auto path : mtcd.in[ndst] ) if( path->src == nsrc ) return true;
+
+    auto path = new tcp(ca,ndst,nsrc);
+    mtcd.edge << path;
+    mtcd.in[ndst] << path;
+    mtcd.out[nsrc] << path;
+    return true;
+}
+
 Sengine::Sengine() {
     using namespace sys;
     TargetOptions opt;
