@@ -1,7 +1,7 @@
-module Op entry main
+module Op : io net string memory
 
 class Op {
-    method main raw "Stringe"( argc int32, argv **int8 ) int32
+    method raw "Stringe" main( argc int32, argv **int8 ) int32
 
     class Sub {
         operator default assign( ref const x this class ) ref Op::Sub

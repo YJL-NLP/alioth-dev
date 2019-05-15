@@ -29,7 +29,7 @@ static bool isalioth( const string& name ) {
     return true;
 }
 
-static int whichLd( char* buf ) {
+static int whichCmd( char* buf, const string& cmd ) {
     int io[2];
     int 
         so = dup(1),
@@ -37,7 +37,7 @@ static int whichLd( char* buf ) {
     if( pipe(io) ) return -1;
     dup2(io[1],1);
     dup2(io[0],0);
-    auto ret = system("which ld");
+    auto ret = system( ("which "+cmd).c_str() );
     if( ret == 0 ) scanf("%s",buf);
     dup2(so,1);
     dup2(si,0);
@@ -380,11 +380,19 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     }
 
     vector<string> args;
-    args.push_back("ld");
-    args.push_back("-o");
-    args.push_back(mdengine.getPath("",Work|Bin) + appname);
-    if( bentry ) args.push_back(mdengine.getPath("alioth.o", Root|Obj));
-    //[TODO]: 提供不创建可执行程序的解决方案。
+    char cmd[128];
+    if( bentry ) {
+        args.push_back("ld");
+        args.push_back("-o");
+        args.push_back(mdengine.getPath("",Work|Bin) + appname);
+        args.push_back(mdengine.getPath("alioth.o", Root|Obj));
+        if( whichCmd(cmd,"ld") ) {cout << "cannot find linker \"ld\"" << endl;bfine = false;}
+    } else {
+        args.push_back("ar");
+        args.push_back("-rcs");
+        args.push_back(mdengine.getPath("",Work|Arc) + appname + ".a");
+        if( whichCmd(cmd,"ar") ) {cout << "cannot find command \"ar\"" << endl;bfine = false;}
+    }
 
     for( auto desc : descs ) {
         Dengine::vfdm fd;
@@ -406,9 +414,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     if( bfine and descs.size() and fork() == 0 ) {
         vector<const char*> sargs;
         for( auto& arg : args ) sargs.push_back(arg.c_str()); sargs.push_back(nullptr);
-        char cmd[128];
-        if( whichLd(cmd) ) cout << "cannot find linker \"ld\"" << endl;
-        else execv( cmd, (char*const*)&sargs[0] );
+        execv( cmd, (char*const*)&sargs[0] );
     }
     int st;
     wait(&st);
