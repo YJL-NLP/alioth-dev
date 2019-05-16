@@ -604,6 +604,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     std::vector<Value*> args;
     auto ait = impl->sub.begin();
     auto fp = performImplementationSemanticValidation( *(ait++), builder, AsProc );
+    if( !fp ) return nullptr;
     
     if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
         args.push_back(requestThis(($implementation)impl));

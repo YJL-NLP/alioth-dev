@@ -19,5 +19,5 @@ class iTalk {
      */
     method public main( argc int32, argv **int8 ) int32
     
-    method display( data *int8, ref addr SockAddr ) void
+    method displa( data *int8, ref addr SockAddr ) void
 }
