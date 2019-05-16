@@ -24,6 +24,7 @@ clean:
 install: all
 	sudo cp bin/aliothc /usr/bin/aliothc
 	sudo cp -r root/. /usr/lib/alioth
+	sudo cp root/inc/aliothc /usr/share/bash-completion/completions/
 
 initial:
 	if ! [ -d bin ]; then mkdir bin; fi

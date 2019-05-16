@@ -1,0 +1,13 @@
+# bash completion for aliothc
+
+_aliothc() {
+    local cur prev words cword
+    _init_completion || return
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $( compgen -W "--root -R --work -W -V -v --version --app-name --init -h --help" -- ${cur}) )
+        return 0
+    fi
+}
+
+complete -F _aliothc aliothc
