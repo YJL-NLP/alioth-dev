@@ -498,7 +498,7 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
             }
         }
 
-    
+    if( ret.size() == 0 ) mlogrepo(impl->getDocPath())(Lengine::E2004,impl->mean);
     return ret;
 }
 
@@ -603,7 +603,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 
     std::vector<Value*> args;
     auto ait = impl->sub.begin();
-    auto fp = performImplementationSemanticValidation( *(ait++), builder, AsProc );
+    auto fp = performImplementationSemanticValidation( *(ait++), builder, AsProc ); //[FIXME] : 这里应该有机会获取所有的可选项，再逐一筛选
     if( !fp ) return nullptr;
     
     if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
