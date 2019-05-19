@@ -4,6 +4,8 @@
 #include "manager.hpp"
 #include <sys/stat.h>
 #include <sys/stat.h>
+#include "xengine.hpp"
+#include "yengine.hpp"
 #include <iostream>
 #include <unistd.h>
 #include <cstring>
@@ -22,13 +24,31 @@ void pagehelp();
 int main( int argc, char **argv ) {
 
     Lengine::logr loggers;
+    int cmd = 0;
     auto manager = Manager();
     auto& lengine = manager.getLogEngine();
     auto& dengine = manager.getDocumentEngine();
 
-    if( auto cmd = argproc( argc, argv, manager ); cmd <= 0 ) return cmd;
+    cmd = argproc( argc, argv, manager );
+    if( cmd <= 0 ) return cmd;
     lengine.config(Jsonz::fromJsonStream(*dengine.getIs("lengine.json",Root)));
 
+    if( cmd == 1 ) { // syntax check
+        manager.getLogEngine().color(false);
+        manager.Build( Manager::SYNTAXCHECK, loggers );
+        auto arr = lengine(loggers);
+        Jsonz doc = JArray;
+        Jsonz out = JObject;
+        for( auto d : dengine.enumFile(Work|Src,"") + dengine.enumFile(Work|Inc,"") ) {
+            doc.insert(dengine.getPath(d),-1);
+        }
+        out["doc"] = doc;
+        out["arr"] = arr;
+        cout << out.toJson();
+        return 0;
+    }
+
+    // normal build
     auto no = manager.Build( Manager::MACHINECODE, loggers );
     if( !no ) cout << "\033[1;31merror\033[0m: build failed !" << endl;
 
@@ -61,11 +81,14 @@ int argproc( int argc, char **argv, Manager& manager ) {
     string cmd_init = "--init";
     string cmd_h = "-h";
     string cmd_help = "--help";
+    string cmd_syntax = "--syntax";
 
     auto& dengine = manager.getDocumentEngine();
 
     for( auto i = 1; i < argc; i++ ) {
-        if( cmd_root == argv[i] or cmd_R == argv[i] ) {
+        if( cmd_syntax == argv[i] ) {
+            return 1; // return for syntax check
+        } else if( cmd_root == argv[i] or cmd_R == argv[i] ) {
             dengine.setSpacePath(Root,argv[++i]);
         } else if( cmd_work == argv[i] or cmd_W == argv[i] ) {
             dengine.setSpacePath(Work,argv[++i]);

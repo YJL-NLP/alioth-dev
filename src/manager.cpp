@@ -381,26 +381,30 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
 
     vector<string> args;
     char cmd[128];
-    if( bentry ) {
-        args.push_back("ld");
-        args.push_back("-o");
-        args.push_back(mdengine.getPath("",Work|Bin) + appname);
-        args.push_back(mdengine.getPath("alioth.o", Root|Obj));
-        if( whichCmd(cmd,"ld") ) {cout << "cannot find linker \"ld\"" << endl;bfine = false;}
-    } else {
-        args.push_back("ar");
-        args.push_back("-rcs");
-        args.push_back(mdengine.getPath("",Work|Arc) + "lib" + appname + ".a");
-        if( whichCmd(cmd,"ar") ) {cout << "cannot find command \"ar\"" << endl;bfine = false;}
+    if( type != SYNTAXCHECK ) {
+        if( bentry ) {
+            args.push_back("ld");
+            args.push_back("-o");
+            args.push_back(mdengine.getPath("",Work|Bin) + appname);
+            args.push_back(mdengine.getPath("alioth.o", Root|Obj));
+            if( whichCmd(cmd,"ld") ) {cout << "cannot find linker \"ld\"" << endl;bfine = false;}
+        } else {
+            args.push_back("ar");
+            args.push_back("-rcs");
+            args.push_back(mdengine.getPath("",Work|Arc) + "lib" + appname + ".a");
+            if( whichCmd(cmd,"ar") ) {cout << "cannot find command \"ar\"" << endl;bfine = false;}
+        }
     }
 
     for( auto desc : descs ) {
+        
         Dengine::vfdm fd;
         fd.app = desc->program;
         fd.name = desc->name+".o";
         fd.space = Obj;
         fd.space |= desc->program == this->appname?Work:desc->program == "alioth"?Root:Apps;
         args.push_back(mdengine.getPath(fd));
+
         for( auto imname = mnames.begin(); imname != mnames.end(); imname++  ) if( auto& mname = *imname; mname == desc->name ) {
             mnames.erase(imname);
             auto unit = msengine.performImplementationSemanticValidation(desc,mdengine);
@@ -411,7 +415,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     }
 
     log += msengine.getLog();
-    if( bfine and descs.size() and fork() == 0 ) {
+    if( type != SYNTAXCHECK and bfine and descs.size() and fork() == 0 ) {
         vector<const char*> sargs;
         for( auto& arg : args ) sargs.push_back(arg.c_str()); sargs.push_back(nullptr);
         execv( cmd, (char*const*)&sargs[0] );

@@ -35,7 +35,7 @@ class Manager {
 
     public:
 
-        enum BuildType {MACHINECODE,SYNTAXCODE};
+        enum BuildType {MACHINECODE,SYNTAXCODE,SYNTAXCHECK};
     
     private:
         using missrec = tuple<$depdesc,$modesc>;  //模块丢失的记录:丢失模块,需求来源
