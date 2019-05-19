@@ -135,7 +135,7 @@ string Dengine::getPath( const string& docName, vspace space, const string& app 
         //default : return "";
     }
 
-    if( st[st.size()-1] != '/' ) st += "/";
+    if( st.size() and st[st.size()-1] != '/' ) st += "/";
 
     switch( p ) {
         case Work: st = mdirWork + st + docName;break;
@@ -170,19 +170,19 @@ string Dengine::getPath( const vfdm& fdm )const {
     return getPath( fdm.name, fdm.space, fdm.app );
 }
 
-bool Dengine::setMethodGetIs( IstreamGetter& methodIDoc ) {
+bool Dengine::setMethodGetIs( IstreamGetter methodIDoc ) {
     midoc = methodIDoc;
     return true;
 }
-bool Dengine::setMethodGetOs( OstreamGetter& methodODoc ) {
+bool Dengine::setMethodGetOs( OstreamGetter methodODoc ) {
     modoc = methodODoc;
     return true;
 }
-bool Dengine::setMethodEnumFile( VfileEnumer& methodEDoc ) {
+bool Dengine::setMethodEnumFile( VfileEnumer methodEDoc ) {
     medoc = methodEDoc;
     return true;
 }
-bool Dengine::setMethodStatFile( VfileStater& methodSDoc ) {
+bool Dengine::setMethodStatFile( VfileStater methodSDoc ) {
     msdoc = methodSDoc;
     return true;
 }

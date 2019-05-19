@@ -118,7 +118,7 @@ class Dengine {
          * @param methodIDoc : 用来作为获取器的方法
          * @return bool : 设置是否成功
          */
-        bool setMethodGetIs( IstreamGetter& methodIDoc );
+        bool setMethodGetIs( IstreamGetter methodIDoc );
 
         /**
          * @method setMethodGetOs : 设置文档输出流获取器
@@ -128,7 +128,7 @@ class Dengine {
          * @param methodODoc : 用来作为获取器的方法
          * @return bool : 设置是否成功
          */
-        bool setMethodGetOs( OstreamGetter& methodODoc );
+        bool setMethodGetOs( OstreamGetter methodODoc );
 
 
         /**
@@ -139,7 +139,7 @@ class Dengine {
          * @param methodEDoc : 用来作为枚举器的方法
          * @return bool : 设置是否成功
          */
-        bool setMethodEnumFile( VfileEnumer& methodEDoc );
+        bool setMethodEnumFile( VfileEnumer methodEDoc );
 
         /**
          * @method setMethodStatFile : 设置文件属性检查器
@@ -149,7 +149,7 @@ class Dengine {
          * @param methodSDoc : 用于作为属性检查器的方法
          * @return bool : 设置是否成功
          */
-        bool setMethodStatFile( VfileStater& methodSDoc );
+        bool setMethodStatFile( VfileStater methodSDoc );
 
 
         uistream    getIs( const string&, vspace, const string& app = "" )const;

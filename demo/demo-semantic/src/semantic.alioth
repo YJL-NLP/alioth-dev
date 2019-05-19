@@ -1,0 +1,5 @@
+module semantic
+
+class semanticx {
+    operator assign( x int32 ) ref this class
+}

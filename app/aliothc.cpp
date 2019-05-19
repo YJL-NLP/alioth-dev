@@ -7,6 +7,7 @@
 #include "xengine.hpp"
 #include "yengine.hpp"
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <cstring>
 #include <stdio.h>
@@ -17,7 +18,10 @@
 using namespace std;
 using namespace alioth;
 
+static Manager* pm = nullptr;
+
 int argproc( int argc, char**argv, Manager& manager );
+uistream asker(const string& name, vspace space, const string& app);
 void writemakefile( string base );
 void pagehelp();
 
@@ -26,6 +30,7 @@ int main( int argc, char **argv ) {
     Lengine::logr loggers;
     int cmd = 0;
     auto manager = Manager();
+    pm = &manager;
     auto& lengine = manager.getLogEngine();
     auto& dengine = manager.getDocumentEngine();
 
@@ -33,18 +38,14 @@ int main( int argc, char **argv ) {
     if( cmd <= 0 ) return cmd;
     lengine.config(Jsonz::fromJsonStream(*dengine.getIs("lengine.json",Root)));
 
-    if( cmd == 1 ) { // syntax check
+    if( cmd == 2 ) { // syntax check
         manager.getLogEngine().color(false);
         manager.Build( Manager::SYNTAXCHECK, loggers );
         auto arr = lengine(loggers);
-        Jsonz doc = JArray;
-        Jsonz out = JObject;
-        for( auto d : dengine.enumFile(Work|Src,"") + dengine.enumFile(Work|Inc,"") ) {
-            doc.insert(dengine.getPath(d),-1);
-        }
-        out["doc"] = doc;
-        out["arr"] = arr;
-        cout << out.toJson();
+        Jsonz obj = JObject;
+        obj["cmd"] = "diagnostic";
+        obj["log"] = arr;
+        cout << obj.toJson();
         return 0;
     }
 
@@ -81,13 +82,18 @@ int argproc( int argc, char **argv, Manager& manager ) {
     string cmd_init = "--init";
     string cmd_h = "-h";
     string cmd_help = "--help";
-    string cmd_syntax = "--syntax";
+    string cmd_semantic_check = "--semantic-check";
+    string cmd_ask_input = "--ask-input";
+
+    int ret = 1;
 
     auto& dengine = manager.getDocumentEngine();
 
     for( auto i = 1; i < argc; i++ ) {
-        if( cmd_syntax == argv[i] ) {
-            return 1; // return for syntax check
+        if( cmd_semantic_check == argv[i] ) {
+            ret = 2; // return for syntax check
+        } else if( cmd_ask_input == argv[i] ) {
+            dengine.setMethodGetIs(asker);
         } else if( cmd_root == argv[i] or cmd_R == argv[i] ) {
             dengine.setSpacePath(Root,argv[++i]);
         } else if( cmd_work == argv[i] or cmd_W == argv[i] ) {
@@ -128,7 +134,7 @@ int argproc( int argc, char **argv, Manager& manager ) {
         }
     }
 
-    return 1;
+    return ret;
 }
 
 void writemakefile( string base ) {
@@ -190,6 +196,27 @@ void pagehelp() {
 
     "\n"
     ;
+}
+
+uistream asker( const string& name, vspace space, const string& app ) {
+    Jsonz ask = JObject;
+    ask["cmd"] = "ask for input";
+    ask["path"] = pm->getDocumentEngine().getPath(name,space,app);
+    auto astr = ask.toJson();
+    cout << astr << endl;
+
+    auto answer = ask.fromJsonStream(cin);
+    astr = answer.toJson();
+    if( answer.is(JString) ) {
+        auto stream = std::make_unique<stringstream>();
+        stream->str((string)answer);
+        return stream;
+    } else {
+        string path = pm->getDocumentEngine().getPath(name,space,app);
+        unique_ptr<ifstream> is = std::make_unique<ifstream>(path);
+        if( !is->good() ) return nullptr;
+        return is;
+    }
 }
 
 #endif
