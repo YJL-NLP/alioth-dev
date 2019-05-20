@@ -605,6 +605,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "invalid target for assign expression"
+        },"2054":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "data type doesn't match"
         }
     }
 }

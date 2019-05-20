@@ -5,5 +5,5 @@ class Asx {
 }
 
 method Asx main( argc int32, argv **int8 ) int32 {
-    return argv as int32;
+    return argv as int32 as int8;
 }

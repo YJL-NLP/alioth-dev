@@ -168,6 +168,7 @@ class Lengine {
             E2051,
             E2052,
             E2053,
+            E2054,
         };
 
         struct logi {

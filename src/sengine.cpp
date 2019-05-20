@@ -375,14 +375,15 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal ); if( !v ) return false;
                 //[TODO] : generateBackendIR for <leave> method
 
-                /**[TODO]: 类型匹配的工作应该统一由类型引擎来处理 **/
-                if( auto proto = v->eproto(); proto->dtype->is(typeuc::NullPointerType) ) {
-                    auto mep = requestPrototype(($implementation)impl);
-                    auto ty = generateTypeUsageAsAttribute(mep->rproto);
-                    v = imm::object(builder.CreatePointerCast(v->asobject(builder),ty),mep->rproto);
+                auto proto = requestPrototype(($implementation)impl);
+                if( auto rv = insureEquivalent(proto->rproto->dtype, v, builder ); rv ) {
+                    builder.CreateRet(rv->asobject(builder));
+                    flag_terminate = true;
+                } else {
+                    //[TODO]: 报告错误
+                    mlogrepo(impl->getDocPath())(Lengine::E2054,impl->expr->phrase);
+                    return false;
                 }
-                builder.CreateRet(v->asobject(builder));
-                flag_terminate = true;
             } else {
                 builder.CreateRetVoid();
                 flag_terminate = true;
@@ -1095,8 +1096,8 @@ $eproto Sengine::determineElementPrototype( $eproto proto ) {
     if( !proto ) return nullptr;
     if( !determineDataType(proto->dtype) ) return nullptr;
     if( proto->elmt == UDF ) {
-        if( proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
-        else proto->elmt = PTR;
+        if( proto->dtype->is(typeuc::PointerType) ) proto->elmt = PTR;
+        else proto->elmt = OBJ;
     }  else if( proto->elmt == PTR ) {
         if( !proto->dtype->is(typeuc::PointerType) ) {
             mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
@@ -1429,6 +1430,17 @@ bool Sengine::checkEquivalent( $typeuc dst, $typeuc src ) {
     if( dst->is(typeuc::PointerType) ) return checkEquivalent( ($typeuc)dst->sub, ($typeuc)src->sub );
     if( dst->is(typeuc::CompositeType) ) return dst->sub == src->sub;
     return true;
+}
+
+$imm Sengine::insureEquivalent( $typeuc dst, $imm src, IRBuilder<>& builder ) {
+    if( !dst or !src or !src->eproto() ) return nullptr;
+    if( !determineDataType(dst) ) return nullptr;
+    if( auto proto = src->eproto(); proto->dtype->is(typeuc::NullPointerType) and dst->is(typeuc::PointerType) ) {
+        auto ty = generateTypeUsage(dst);
+        src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dst->name.getScope(),PTR,dst));
+    }
+    if( checkEquivalent(dst,src->eproto()->dtype) ) return src;
+    return nullptr;
 }
 
 /*

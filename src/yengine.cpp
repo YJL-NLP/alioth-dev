@@ -1569,13 +1569,18 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 ret = nr;
                 stack.movi(6);
             } else if( it->is(VT::AS) ) {
-                auto nr = new ExpressionImpl;
-                nr->type = ExpressionImpl::CONVERT;
-                nr->sub << ret;
-                ret->phrase = *(it-1);
-                ret->setScope(scope);
-                ret = nr;
-                stack.movi(12);
+                auto prev = prio(*(it-2));
+                if( prev and prev < prio(*it)) {
+                    stack.redu(-2,VN::EXPRESSION);
+                } else {
+                    auto nr = new ExpressionImpl;
+                    nr->type = ExpressionImpl::CONVERT;
+                    nr->sub << ret;
+                    ret->phrase = *(it-1);
+                    ret->setScope(scope);
+                    ret = nr;
+                    stack.movi(12);
+                }
             } else {
                 stack.redu(-2,VN::EXPRESSION);
             } break;
@@ -2035,7 +2040,8 @@ int Yengine::prio(const token& it)const {
         p += 1;
         if( it.is(VT::PLUS,VT::MINUS) ) break;
         p += 1;
-        //if( it.is(VT::AS) ) break;p += 1;
+        if( it.is(VT::AS) ) break;
+        p += 1;
         if( it.is(VT::RANGE) ) break;
         p += 1;
         if( it.is(CT::RELATION) ) break;

@@ -387,6 +387,7 @@ class Sengine {
          */
         bool checkEquivalent( $eproto dst, $eproto src );
         bool checkEquivalent( $typeuc dst, $typeuc src );
+        $imm insureEquivalent( $typeuc dst, $imm src, IRBuilder<>& builder );
 
         /**
          * @method checkCompatibility : 检查数据类型兼容性
