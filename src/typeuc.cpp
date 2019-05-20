@@ -32,12 +32,13 @@ $typeuc typeuc::GetBasicDataType( VT vt ) {
         case VT::FLOAT32:   return GetBasicDataType(Float32);
         case VT::FLOAT64:   return GetBasicDataType(Float64);
         case VT::BOOL:      return GetBasicDataType(BooleanType);
-        case VT::VOID:       return GetBasicDataType(VoidType);
+        case VT::VOID:      return GetBasicDataType(VoidType);
         default:            return nullptr;
     }
 }
-$typeuc typeuc::GetPointerType( $typeuc _sub, bool constrainted ){
-    if( !_sub or _sub->is(UnknownType) ) return nullptr;
+$typeuc typeuc::GetPointerType( $typeuc _sub, bool constrainted ) {
+    if( !_sub ) return new typeuc(NullPointerType);
+    if( _sub->is(UnknownType) ) return nullptr;
     return new typeuc(_sub,constrainted);
 }
 $typeuc typeuc::GetCompositeType( $ClassDef def ) {

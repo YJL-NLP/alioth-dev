@@ -580,6 +580,21 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "overriding operator for transparent class is not allowed"
+        },"2049":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid parameter for method"
+        },"2050":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "ambiguous call of methods"
+        },"2051":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "b0",
+            "msg" : "no matching for call of '%R0'"
         }
     }
 }

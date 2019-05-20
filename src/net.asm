@@ -10,7 +10,7 @@ global method.SockAddr.CreateBroadCast.Vi32
 global method.Socket.Create.R.SockAddr
 global method.Socket.recvFrom.R.SockAddr.P0i8.Vi32
 global method.Socket.sendTo.R.SockAddr.P0i8.Vi32
-global method.SockAddr.toReadable.P0i8.P0i32
+global method.SockAddr.toReadable.P0i8.P0u32
 
 extern method.string.from.P0i8.Vu32.Vi32
 
@@ -251,7 +251,7 @@ method.Socket.sendTo.R.SockAddr.P0i8.Vi32:
     ret
 
 ; rdi *SockAddr, rsi buf, rdx *port
-method.SockAddr.toReadable.P0i8.P0i32:
+method.SockAddr.toReadable.P0i8.P0u32:
     push rax
     push rdi
     

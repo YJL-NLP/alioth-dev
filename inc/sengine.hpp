@@ -328,7 +328,7 @@ class Sengine {
          * @return : 推导的数据类型
          */
         $typeuc determineDataType( $typeuc type );
-        $typeuc determineDataType( $ExpressionImpl expr );
+        // $typeuc determineDataType( $ExpressionImpl expr );
         $eproto determineElementPrototype( $eproto );
 
         /**
@@ -398,7 +398,7 @@ class Sengine {
          * @return $tcp : 若检测失败,则返回空,否则返回路径链表头代理
          *  注意区分[不可转换]与[检测失败]两种情况的不同.
          */
-        $tcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
+        // $tcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
         // $tcp checkCompatibility( $eproto dst, $eproto src, Situation s );
 
         /**

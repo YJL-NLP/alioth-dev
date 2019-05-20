@@ -376,7 +376,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
                 //[TODO] : generateBackendIR for <leave> method
 
                 /**[TODO]: 类型匹配的工作应该统一由类型引擎来处理 **/
-                if( auto proto = v->eproto(); proto->dtype->is(typeuc::PointerType) and (($typeuc)proto->dtype->sub)->is(typeuc::VoidType) ) {
+                if( auto proto = v->eproto(); proto->dtype->is(typeuc::NullPointerType) ) {
                     auto mep = requestPrototype(($implementation)impl);
                     auto ty = generateTypeUsageAsAttribute(mep->rproto);
                     v = imm::object(builder.CreatePointerCast(v->asobject(builder),ty),mep->rproto);
@@ -543,7 +543,46 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                     typeuc::GetBasicDataType(VT::INT32)
                 )
             );
-        }
+        } break;
+        case VT::iINTEGERb: {
+            auto i = std::stoll(string(impl->mean.tx.begin()+2,impl->mean.tx.end()),nullptr,2);
+            $typeuc type = nullptr;
+            Value* value = nullptr;
+            if( auto len = impl->mean.tx.length() - 2;
+                len <= 8 ) {type = typeuc::GetBasicDataType(typeuc::Uint8);value = builder.getInt8(i);}
+                else if( len <= 16 ) {type = typeuc::GetBasicDataType(typeuc::Uint16);value = builder.getInt16(i);}
+                else if( len <= 32 ) {type = typeuc::GetBasicDataType(typeuc::Uint32);value = builder.getInt32(i);}
+                else if( len <= 64 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
+                else return nullptr;
+            auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
+            return imm::object( value, proto );
+        } break;
+        case VT::iINTEGERh: {
+            auto i = std::stoll(string(impl->mean.tx.begin()+2,impl->mean.tx.end()),nullptr,16);
+            $typeuc type = nullptr;
+            Value* value = nullptr;
+            if( auto len = impl->mean.tx.length() - 2;
+                len <= 2 ) {type = typeuc::GetBasicDataType(typeuc::Uint8);value = builder.getInt8(i);}
+                else if( len <= 4 ) {type = typeuc::GetBasicDataType(typeuc::Uint16);value = builder.getInt16(i);}
+                else if( len <= 8 ) {type = typeuc::GetBasicDataType(typeuc::Uint32);value = builder.getInt32(i);}
+                else if( len <= 16 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
+                else return nullptr;
+            auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
+            return imm::object( value, proto );
+        } break;
+        case VT::iINTEGERo: {
+            auto i = std::stoll(string(impl->mean.tx.begin()+2,impl->mean.tx.end()),nullptr,8);
+            $typeuc type = nullptr;
+            Value* value = nullptr;
+            if( auto len = impl->mean.tx.length() - 2;
+                len <= 3 ) {type = typeuc::GetBasicDataType(typeuc::Uint8);value = builder.getInt8(i);}
+                else if( len <= 6 ) {type = typeuc::GetBasicDataType(typeuc::Uint16);value = builder.getInt16(i);}
+                else if( len <= 12 ) {type = typeuc::GetBasicDataType(typeuc::Uint32);value = builder.getInt32(i);}
+                else if( len <= 124 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
+                else return nullptr;
+            auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
+            return imm::object( value, proto );
+        } break;
         case VT::iSTRING: {
             return imm::object(
                 builder.CreateGlobalStringPtr( Xengine::extractText(impl->mean) ),
@@ -560,7 +599,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 eproto::MakeUp(
                     impl->getScope(),
                     PTR,
-                    typeuc::GetVoidType()->getPointerTo()
+                    typeuc::GetPointerType()
                 )
             );
         }
@@ -602,20 +641,53 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     if( impl->type != ExpressionImpl::CALL ) return nullptr;
 
     std::vector<Value*> args;
+    imms argis;
+    auto err = false;
     auto ait = impl->sub.begin();
-    auto fp = performImplementationSemanticValidation( *(ait++), builder, AsProc ); //[FIXME] : 这里应该有机会获取所有的可选项，再逐一筛选
-    if( !fp ) return nullptr;
-    
-    if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
-        args.push_back(requestThis(($implementation)impl));
-    } else if( impl->sub[0]->type == ExpressionImpl::MEMBER ) {
-        args.push_back(fp->h->asaddress(builder));
-    }
-    
+    auto fps = (*ait)->type == ExpressionImpl::MEMBER?
+        processMemberExpression( *(ait++), builder, AsProc ):
+        processNameusageExpression( *(ait++), builder, AsProc );
+
     while( ait != impl->sub.end() ) {
         auto p = performImplementationSemanticValidation( *(ait++), builder, AsParam );
-        if( !p ) return nullptr;
-        args.push_back( p->asparameter(builder) );
+        if( !p ) err = true;
+        else if( !p->eproto() ) {mlogrepo(impl->getDocPath())(Lengine::E2049,(*(ait-1))->phrase );err = true;}
+        else args.push_back( p->asparameter(builder) );
+        argis << p;
+    }
+    if( err ) return nullptr;
+
+    $imm fp = nullptr;
+    for( auto tfp : fps ) {
+        if( !tfp->asfunction() ) continue;
+        auto mproto = tfp->prototype();
+        if( !mproto or mproto->size() != argis.size() ) continue;
+        bool continu = false;
+        auto it = argis.begin();
+        for( auto par : *tfp->prototype() ) {
+            if( !checkEquivalent( par->proto->dtype, (*it)->eproto()->dtype ) ) continu = true;
+            it++;
+        }
+        if( continu ) continue;
+        if( fp ) {
+            mlogrepo(impl->getDocPath())(Lengine::E2050,impl->phrase)
+                (fp->prototype()->getDocPath(),Lengine::E2010,fp->prototype()->name)
+                (mproto->getDocPath(),Lengine::E2010,mproto->name);
+            err = true;
+        } else {
+            fp = tfp;
+        }
+    }
+
+    if( !fp or err ) {
+        if( !fp ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
+        return nullptr;
+    }
+    
+    if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
+        args.insert(args.begin(),requestThis(($implementation)impl));
+    } else if( impl->sub[0]->type == ExpressionImpl::MEMBER ) {
+        args.insert(args.begin(),fp->h->asaddress(builder));
     }
 
     return imm::object(builder.CreateCall(fp->asfunction(),args),fp->prototype()->rproto);  //[FIXME]object存疑
@@ -647,9 +719,9 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                 case VT::MUL:   rv = builder.CreateMul(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
                 case VT::DIV:   rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
                 case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITAND:  rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITOR:   rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITXOR:  rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::BITOR: rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+                case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
             }
 
             return imm::object( rv, proto );
@@ -719,9 +791,11 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     } 
     $imm inm = nullptr;
     Value* inv = nullptr;
+    bool fine = true;
     if( impl->init ) {
         inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
-        inv = inm->asobject(builder);
+        if( inm ) inv = inm->asobject(builder);
+        else fine = false;
     }
 
     if( impl->proto->dtype->is(typeuc::UnknownType) ) {
@@ -733,7 +807,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     if( inv ) builder.CreateStore(inv,addr);
 
     mlocalV[impl] = addr;
-    return addr;
+    return addr != nullptr and fine;
 }
 
 bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuilder<>& builder ) {
@@ -745,8 +819,9 @@ bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuild
     auto bb3 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bb4 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
     auto bd = IRBuilder<>(mctx);
-    auto cond = performImplementationSemanticValidation( impl->exp, builder, AsOperand );
     bool ret = false;
+    auto cond = performImplementationSemanticValidation( impl->exp, builder, AsOperand );
+    if( !cond ) return false;
     builder.CreateCondBr(cond->asobject(builder),bb2,bb3);
     builder.SetInsertPoint(bb4);
 
@@ -906,10 +981,73 @@ $typeuc Sengine::determineDataType( $typeuc type ) {
         }
     } else if( type->is(typeuc::UndeterminedType) ) {
         return nullptr;
+    } else if( auto sub = ($typeuc)type->sub; sub ) {
+        if( type->is(typeuc::NullPointerType) or determineDataType(sub) ) return type;
+        return nullptr;
     } else {
         return type;
     }
 }
+
+/*
+$typeuc Sengine::determineDataType( $ExpressionImpl impl ) {
+    if( !impl ) return nullptr;
+
+    switch( impl->type ) {
+        case ExpressionImpl::VALUE: switch( impl->mean.id ) {
+            case VT::iINTEGERn:
+                return typeuc::GetBasicDataType(typeuc::Int32);
+            case VT::iINTEGERb: 
+                if( auto len = impl->mean.tx.length() - 2;
+                    len <= 8 ) return typeuc::GetBasicDataType(typeuc::Uint8);
+                    else if( len <= 16 ) return typeuc::GetBasicDataType(typeuc::Uint16);
+                    else if( len <= 32 ) return typeuc::GetBasicDataType(typeuc::Uint32);
+                    else if( len <= 64 ) return typeuc::GetBasicDataType(typeuc::Uint64);
+                    else return nullptr;
+                break;
+            case VT::iINTEGERh:
+                if( auto len = impl->mean.tx.length() - 2;
+                    len <= 2 ) return typeuc::GetBasicDataType(typeuc::Uint8);
+                    else if( len <= 4 ) return typeuc::GetBasicDataType(typeuc::Uint16);
+                    else if( len <= 8 ) return typeuc::GetBasicDataType(typeuc::Uint32);
+                    else if( len <= 16 ) return typeuc::GetBasicDataType(typeuc::Uint64);
+                    else return nullptr;
+                break;
+            case VT::iINTEGERo:
+                if( auto len = impl->mean.tx.length() - 2;
+                    len <= 3 ) return typeuc::GetBasicDataType(typeuc::Uint8);
+                    else if( len <= 6 ) return typeuc::GetBasicDataType(typeuc::Uint16);
+                    else if( len <= 12 ) return typeuc::GetBasicDataType(typeuc::Uint32);
+                    else if( len <= 24 ) return typeuc::GetBasicDataType(typeuc::Uint64);
+                    else return nullptr;
+                break;
+            case VT::iSTRING:
+                return typeuc::GetBasicDataType(typeuc::Int8)->getPointerTo();
+            case VT::iCHAR:
+                return typeuc::GetBasicDataType(typeuc::Int8);
+            case VT::iNULL:
+                return typeuc::GetPointerType();
+            case VT::iTHIS:
+                return typeuc::GetCompositeType(requestThisClass(($implementation)impl));
+            case VT::iTRUE:
+                return typeuc::GetBasicDataType(typeuc::BooleanType);
+            case VT::iFALSE:
+                return typeuc::GetBasicDataType(typeuc::BooleanType);
+        } break;
+        case ExpressionImpl::NAMEUSAGE:
+
+        case ExpressionImpl::MEMBER:
+        case ExpressionImpl::INFIX:
+        case ExpressionImpl::SUFFIX:
+        case ExpressionImpl::PREFIX:
+        case ExpressionImpl::ASSIGN:
+            return determineDataType( impl->sub[0] );
+        case ExpressionImpl::CALL:
+
+        default: return nullptr;
+    }
+}
+*/
 
 $eproto Sengine::determineElementPrototype( $eproto proto ) {
     if( !proto ) return nullptr;
@@ -1243,12 +1381,15 @@ bool Sengine::checkEquivalent( $typeuc dst, $typeuc src ) {
     if( !determineDataType(dst) ) return false;
     if( !determineDataType(src) ) return false;
 
-    if( dst->id != src->id ) return false;
+    if( dst->id == typeuc::NullPointerType ) return src->is(typeuc::PointerType);
+    if( src->id == typeuc::NullPointerType ) return dst->is(typeuc::PointerType);
+    if( dst->id != src->id and dst->id ) return false;
     if( dst->is(typeuc::PointerType) ) return checkEquivalent( ($typeuc)dst->sub, ($typeuc)src->sub );
     if( dst->is(typeuc::CompositeType) ) return dst->sub == src->sub;
     return true;
 }
 
+/*
 $tcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
     if( !dst or !src ) return nullptr;
     if( !determineDataType(dst) ) return nullptr;
@@ -1260,7 +1401,7 @@ $tcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
             else {
                 /**
                  * [TODO]: 先搜索类型转换运算符重载再搜索
-                 */
+                 *
                 throw runtime_error("function not supported yet");
             }
         } else {
@@ -1280,6 +1421,7 @@ $tcp Sengine::checkCompatibility( $typeuc dst, $typeuc src, Situation s ) {
 
     return nullptr;
 }
+*/
 
 $typeuc Sengine::tcd_get_node( $typeuc t ) {
     if( !determineDataType(t) ) return nullptr;

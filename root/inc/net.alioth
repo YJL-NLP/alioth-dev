@@ -32,7 +32,7 @@ class SockAddr {
      * @param str : 字符串缓冲,用于存储人类可读的点分制IP地址
      * @param port : 本机字节顺序的端口号
      */
-    method toReadable( str *int8, port *int32 ) void
+    method toReadable( str *int8, port *uint32 ) void
 }
 
 /**

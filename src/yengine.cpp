@@ -57,9 +57,8 @@ void Yengine::smachine::redu(int c, VN n ) {
             //node.insert( std::move(*(--it)), 0 );
             node.bl = (it-1)->bl;
             node.bc = (it-1)->bc;
-            if( auto size = node.tx.size(); size and isalpha(node.tx[size-1]) and isalpha((it-1)->tx[0]) )
-            node.tx += " ";
-            node.tx += (it-1)->tx;
+            if( isalpha(node.tx[0]) and isalpha((it-1)->tx.back()) ) node.tx = (it-1)->tx + " " + node.tx;
+            else node.tx = (it-1)->tx + node.tx;
             (--it).r.remove(it.pos);
         }
         states.remove(-1);

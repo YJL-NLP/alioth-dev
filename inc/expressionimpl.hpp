@@ -36,8 +36,8 @@ struct ExpressionImpl : public implementation {
             CALL,       //调用
 
             LIST,       //列表
-            SCONSTRUCT, //结构化构造表达式
-            LCONSTRUCT, //序列化构造表达式
+            SCTOR,      //结构化构造表达式
+            LCTOR,      //序列化构造表达式
             LAMBDA,     //lambda表达式
             TRANSFORM   //类型转换
         };

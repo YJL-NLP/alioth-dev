@@ -39,7 +39,8 @@ int main( int argc, char **argv ) {
     lengine.config(Jsonz::fromJsonStream(*dengine.getIs("lengine.json",Root)));
 
     if( cmd == 2 ) { // syntax check
-        manager.getLogEngine().color(false);
+        lengine.color(false);
+        lengine.path(false);
         manager.Build( Manager::SYNTAXCHECK, loggers );
         auto arr = lengine(loggers);
         Jsonz obj = JObject;

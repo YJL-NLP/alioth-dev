@@ -43,18 +43,19 @@ class typeuc : public thing {
         static const TypeID CompositeType =             (TypeIdBitL << 0x04) | DeterminedType;
         static const TypeID ConstraintedPointerType =   (TypeIdBitL << 0x05) | PointerType;
         static const TypeID UnconstraintedPointerType = (TypeIdBitL << 0x06) | PointerType;
-        static const TypeID VoidType =                  (TypeIdBitL << 0x07) | BasicType;
-        static const TypeID BooleanType =               (TypeIdBitL << 0x08) | BasicType;
-        static const TypeID Uint8 =                     (TypeIdBitL << 0x09) | UnsignedIntegerType;
-        static const TypeID Uint16 =                    (TypeIdBitL << 0x0a) | UnsignedIntegerType;
-        static const TypeID Uint32 =                    (TypeIdBitL << 0x0b) | UnsignedIntegerType;
-        static const TypeID Uint64 =                    (TypeIdBitL << 0x0c) | UnsignedIntegerType;
-        static const TypeID Int8 =                      (TypeIdBitL << 0x0d) | SignedIntegerType;
-        static const TypeID Int16 =                     (TypeIdBitL << 0x0e) | SignedIntegerType;
-        static const TypeID Int32 =                     (TypeIdBitL << 0x0f) | SignedIntegerType;
-        static const TypeID Int64 =                     (TypeIdBitL << 0x10) | SignedIntegerType;
-        static const TypeID Float32 =                   (TypeIdBitL << 0x11) | FloatPointType;
-        static const TypeID Float64 =                   (TypeIdBitL << 0x12) | FloatPointType;
+        static const TypeID NullPointerType =           (TypeIdBitL << 0x07) | PointerType;
+        static const TypeID VoidType =                  (TypeIdBitL << 0x08) | BasicType;
+        static const TypeID BooleanType =               (TypeIdBitL << 0x09) | BasicType;
+        static const TypeID Uint8 =                     (TypeIdBitL << 0x0a) | UnsignedIntegerType;
+        static const TypeID Uint16 =                    (TypeIdBitL << 0x0b) | UnsignedIntegerType;
+        static const TypeID Uint32 =                    (TypeIdBitL << 0x0c) | UnsignedIntegerType;
+        static const TypeID Uint64 =                    (TypeIdBitL << 0x0d) | UnsignedIntegerType;
+        static const TypeID Int8 =                      (TypeIdBitL << 0x0e) | SignedIntegerType;
+        static const TypeID Int16 =                     (TypeIdBitL << 0x0f) | SignedIntegerType;
+        static const TypeID Int32 =                     (TypeIdBitL << 0x10) | SignedIntegerType;
+        static const TypeID Int64 =                     (TypeIdBitL << 0x11) | SignedIntegerType;
+        static const TypeID Float32 =                   (TypeIdBitL << 0x12) | FloatPointType;
+        static const TypeID Float64 =                   (TypeIdBitL << 0x13) | FloatPointType;
     public:
         TypeID id;
         nameuc name;
@@ -92,7 +93,7 @@ class typeuc : public thing {
         static $typeuc GetVoidType();
         static $typeuc GetBasicDataType( TypeID _id );
         static $typeuc GetBasicDataType( VT vt );
-        static $typeuc GetPointerType( $typeuc _sub, bool constrainted = false );
+        static $typeuc GetPointerType( $typeuc _sub = nullptr, bool constrainted = false );
         static $typeuc GetCompositeType( $ClassDef def );
 
         /**
