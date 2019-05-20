@@ -1526,7 +1526,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 ret->setScope(scope);
                 ret = nr;
                 stack.redu(1,VN::EXPRESSION);
-            } else if( it->is(VT::AS,VT::TREAT) ) {
+            } else if( it->is(VT::TREAT) ) {
                 return nullptr;
                 //[TODO]: 分析类型转换
             } else if( it->is(VT::OPENL) ) {
@@ -1568,6 +1568,14 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 ret->setScope(scope);
                 ret = nr;
                 stack.movi(6);
+            } else if( it->is(VT::AS) ) {
+                auto nr = new ExpressionImpl;
+                nr->type = ExpressionImpl::CONVERT;
+                nr->sub << ret;
+                ret->phrase = *(it-1);
+                ret->setScope(scope);
+                ret = nr;
+                stack.movi(12);
             } else {
                 stack.redu(-2,VN::EXPRESSION);
             } break;
@@ -1621,6 +1629,16 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 stack.redu(3,VN::EXPRESSION);
             } else {
                 log(Lengine::E202,"]",*it);
+                return nullptr;
+            } break;
+        case 12:
+            if( it->is(VN::PROTO) ) {
+                stack.redu(2,VN::EXPRESSION);
+            } else if( it->is(VT::CLASS) ) {
+                stack.stay();
+                ret->target = constructElementPrototype(it,log,scope,true);
+                if( !ret->target ) return nullptr;
+            } else if( ret->target = constructElementPrototype(it,log,scope,false); !ret->target ) {
                 return nullptr;
             } break;
     }

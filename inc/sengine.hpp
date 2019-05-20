@@ -225,6 +225,7 @@ class Sengine {
         $imm processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCallExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCalcExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
+        $imm processConvertExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
 
         
         /**

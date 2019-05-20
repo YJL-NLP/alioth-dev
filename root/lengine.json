@@ -595,6 +595,16 @@
             "beg" : "b0",
             "end" : "b0",
             "msg" : "no matching for call of '%R0'"
+        },"2052":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid instance for data type converting expression"
+        },"2053":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "invalid target for assign expression"
         }
     }
 }

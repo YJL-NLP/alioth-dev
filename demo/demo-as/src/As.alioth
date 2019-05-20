@@ -1,0 +1,9 @@
+module Asx entry main
+
+class Asx {
+    method main( argc int32, argv **int8 ) int32
+}
+
+method Asx main( argc int32, argv **int8 ) int32 {
+    return argv as int32;
+}

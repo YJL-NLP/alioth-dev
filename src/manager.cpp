@@ -409,7 +409,9 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
             mnames.erase(imname);
             auto unit = msengine.performImplementationSemanticValidation(desc,mdengine);
             if( !unit ) bfine = false;
-            else if( !msengine.triggerBackendTranslation(unit, fd, mdengine) ) bfine = false;
+            else if( type != SYNTAXCHECK )
+                if( !msengine.triggerBackendTranslation(unit, fd, mdengine) ) 
+                    bfine = false;
             break;
         }
     }

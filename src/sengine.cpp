@@ -372,7 +372,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
     switch( impl->action ) {
         case RETURN: {
             if( impl->expr ) {
-                auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal );
+                auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal ); if( !v ) return false;
                 //[TODO] : generateBackendIR for <leave> method
 
                 /**[TODO]: 类型匹配的工作应该统一由类型引擎来处理 **/
@@ -407,6 +407,7 @@ $imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRB
         case ExpressionImpl::PREFIX: return processCalcExpression( impl, builder, pos );
         case ExpressionImpl::INFIX: return processCalcExpression( impl, builder, pos );
         case ExpressionImpl::CALL: return processCallExpression( impl, builder, pos );
+        case ExpressionImpl::CONVERT: return processConvertExpression( impl, builder, pos );
     }
 }
 
@@ -510,6 +511,11 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
     auto left = performImplementationSemanticValidation(impl->sub[0],builder, LeftOfAssign);
     auto right = performImplementationSemanticValidation(impl->sub[1],builder, AsOperand);
     if( !left or !right ) return nullptr;
+
+    if( !left->asaddress(builder) ) {
+        mlogrepo(impl->getDocPath())(Lengine::E2053,impl->sub[0]->phrase);
+        return nullptr;
+    }
     
     switch( impl->mean.id ) {
         default: break;
@@ -781,6 +787,42 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
         }break;
         default : return nullptr;
     }
+    return nullptr;
+}
+
+$imm Sengine::processConvertExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
+    if( !impl ) return nullptr;
+    auto value = performImplementationSemanticValidation(impl->sub[0],builder,Position::AsOperand);
+    if( !value ) return nullptr;
+    auto proto = value->eproto(); if( !determineElementPrototype(proto) ){mlogrepo(impl->getDocPath())(Lengine::E2052,impl->sub[0]->phrase);return nullptr;}
+    auto droto = determineElementPrototype(impl->target); if( !droto ) return nullptr;
+    auto dst = droto->dtype;
+    auto src = proto->dtype;
+    if( checkEquivalent(dst,src) ) return value;
+
+    auto dstt = generateTypeUsage(dst);
+    auto val = value->asobject(builder);
+
+    if( src->is(typeuc::SignedIntegerType) ) {
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateSIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::UnsignedIntegerType) ) {
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateUIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::PointerType) ) {
+        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreatePtrToInt(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateBitCast(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::FloatPointType) ) {
+        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::CompositeType) ) {
+
+    }
+
     return nullptr;
 }
 

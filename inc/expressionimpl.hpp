@@ -39,7 +39,8 @@ struct ExpressionImpl : public implementation {
             SCTOR,      //结构化构造表达式
             LCTOR,      //序列化构造表达式
             LAMBDA,     //lambda表达式
-            TRANSFORM   //类型转换
+            CONVERT,    //显式类型转换
+            TREATE,     //强制类型转换
         };
 
     public:
@@ -84,7 +85,7 @@ struct ExpressionImpl : public implementation {
          * @member mtarget : 目标数据类型
          * @desc : 
          */
-        $typeuc  target;         //  mtype 为treat，transform时有效
+        $eproto  target;         //  mtype 为treat，convert时有效
 
     public:
         bool is( cnode ) const override;
