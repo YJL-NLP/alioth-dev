@@ -38,6 +38,7 @@ void Yengine::smachine::redu(int c, VN n ) {
         node.bc = it->bc;
         node.el = it->el;
         node.ec = it->ec;
+        node.tx = it->tx;
         it.r.remove(it.pos);
     }
     else {
@@ -47,6 +48,7 @@ void Yengine::smachine::redu(int c, VN n ) {
             node.bc = (it-1)->ec;
             node.el = (it-1)->el;
             node.ec = (it-1)->ec;
+            //node.tx = (it-1)->tx;
         }
     }
 
@@ -55,6 +57,9 @@ void Yengine::smachine::redu(int c, VN n ) {
             //node.insert( std::move(*(--it)), 0 );
             node.bl = (it-1)->bl;
             node.bc = (it-1)->bc;
+            if( auto size = node.tx.size(); size and isalpha(node.tx[size-1]) and isalpha((it-1)->tx[0]) )
+            node.tx += " ";
+            node.tx += (it-1)->tx;
             (--it).r.remove(it.pos);
         }
         states.remove(-1);
@@ -1518,6 +1523,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 nr->type = ExpressionImpl::SUFFIX;
                 nr->mean = *it;
                 nr->sub << ret;
+                ret->phrase = *(it-1);
                 ret->setScope(scope);
                 ret = nr;
                 stack.redu(1,VN::EXPRESSION);
@@ -1529,6 +1535,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 nr->type = ExpressionImpl::SUFFIX;
                 nr->mean = *it;
                 nr->sub << ret;
+                ret->phrase = *(it-1);
                 ret->setScope(scope);
                 ret = nr;
                 stack.movi(10);
@@ -1540,6 +1547,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                     $ExpressionImpl nr = new ExpressionImpl;
                     nr->type = ExpressionImpl::MEMBER;
                     nr->sub << ret;
+                    ret->phrase = *(it-1);
                     ret->setScope(scope);
                     ret = nr;
                     stack.movi(9);
@@ -1548,6 +1556,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                     nr->mean = *it;
                     nr->type = it->is(CT::ASSIGN)?ExpressionImpl::ASSIGN:ExpressionImpl::INFIX;
                     nr->sub << ret;
+                    ret->phrase = *(it-1);
                     ret->setScope(scope);
                     ret = nr;
                     stack.movi(8);
@@ -1556,6 +1565,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 auto nr = new ExpressionImpl;
                 nr->type = ExpressionImpl::CALL;
                 nr->sub << ret;
+                ret->phrase = *(it-1);
                 ret->setScope(scope);
                 ret = nr;
                 stack.movi(6);
