@@ -517,6 +517,12 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
         mlogrepo(impl->getDocPath())(Lengine::E2053,impl->sub[0]->phrase);
         return nullptr;
     }
+
+    right = insureEquivalent(left->eproto()->dtype,right, builder);
+    if( !right ) {
+        mlogrepo(impl->getDocPath())(Lengine::E2054,impl->sub[1]->phrase);
+        return nullptr;
+    }
     
     switch( impl->mean.id ) {
         default: break;
@@ -647,7 +653,6 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
 $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::CALL ) return nullptr;
 
-    std::vector<Value*> args;
     imms argis;
     auto err = false;
     auto ait = impl->sub.begin();
@@ -659,7 +664,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
         auto p = performImplementationSemanticValidation( *(ait++), builder, AsParam );
         if( !p ) err = true;
         else if( !p->eproto() ) {mlogrepo(impl->getDocPath())(Lengine::E2049,(*(ait-1))->phrase );err = true;}
-        else args.push_back( p->asparameter(builder) );
+        //else args.push_back( p->asparameter(builder) );
         argis << p;
     }
     if( err ) return nullptr;
@@ -686,9 +691,16 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
         }
     }
 
+    std::vector<Value*> args;
     if( !fp or err ) {
         if( !fp ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
         return nullptr;
+    }
+
+    auto pi = fp->prototype()->begin();
+    for( auto& ai : argis ) {
+        ai = insureEquivalent( (*pi++)->proto->dtype, ai, builder );
+        args.push_back( ai->asparameter(builder) );
     }
     
     if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
@@ -837,8 +849,11 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     bool fine = true;
     if( impl->init ) {
         inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
+        if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
+            inm = insureEquivalent(impl->proto->dtype,inm,builder);
+        }
         if( inm ) inv = inm->asobject(builder);
-        else fine = false;
+        else {mlogrepo(impl->getDocPath())(Lengine::E2054,impl->init->phrase);fine = false;}
     }
 
     if( impl->proto->dtype->is(typeuc::UnknownType) ) {
@@ -847,7 +862,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     }
     auto tp = generateTypeUsageAsAttribute(impl->proto);
     Value* addr = builder.CreateAlloca(tp, nullptr, (string)impl->name);
-    if( inv ) builder.CreateStore(inv,addr);
+    if( inv and fine ) builder.CreateStore(inv,addr);
 
     mlocalV[impl] = addr;
     return addr != nullptr and fine;
