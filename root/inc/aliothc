@@ -7,6 +7,8 @@ _aliothc() {
     if [[ "$cur" == -* ]]; then
         COMPREPLY=( $( compgen -W "--root -R --work -W -V -v --version --app-name --init -h --help" -- ${cur}) )
         return 0
+    else
+        _filedir
     fi
 }
 
