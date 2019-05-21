@@ -178,12 +178,12 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
             if( opdef->rproto->elmt != REF or opdef->rproto->dtype->sub != opdef->getScope() ) 
                 {mlogrepo(opdef->getDocPath())(Lengine::E2041,opdef->rproto->phrase);fine = false;}
             if( opdef->size() != 1 or !determineElementPrototype((*opdef)[0]->proto) ) 
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;} 
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;} 
             else if( auto proto = (*opdef)[0]->proto; 
                 !proto->dtype->is(typeuc::CompositeType) or
                 proto->dtype->sub != opdef->getScope() or
                 not ((proto->elmt == REF and (bool)proto->cons) or (proto->elmt == REL and !(bool)proto->cons) )
-            ) {mlogrepo(opdef->getDocPath())(Lengine::E2043,proto->phrase);fine = false;}
+            ) {mlogrepo(opdef->getDocPath())(Lengine::E2043,(*opdef)[0]->phrase,opdef->name);fine = false;}
             if( !fine ) return false;
             //[TODO]: 产生默认运算符体
             return true;
@@ -245,34 +245,34 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
             if( opdef->constraint ) 
                 {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);fine = false;}
             if( opdef->size() != 1 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
             else if( auto proto = (*opdef)[0]->proto; proto->elmt != REF or !(bool)proto->cons or proto->dtype->sub != opdef->getScope() )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_MCTOR) ) {
             if( opdef->constraint ) 
                 {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);fine = false;}
             if( opdef->size() != 1 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
             else if( auto proto = (*opdef)[0]->proto; proto->elmt != REL or proto->dtype->sub != opdef->getScope() )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_DTOR) ) {
             if( opdef->constraint )
                 {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);fine = false;}
             if( opdef->size() != 0 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_MOVE) ) {
             if( opdef->constraint ) 
                 {mlogrepo(opdef->getDocPath())(Lengine::E2045,opdef->modifier);fine = false;}
             if( opdef->size() != 1 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
             else if( auto proto = (*opdef)[0]->proto; proto->elmt != PTR or (($typeuc)proto->dtype->sub)->sub != opdef->getScope() )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_MEMBER) ) {
             if( opdef->size() != 0 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_WHERE) ) {
             if( opdef->size() != 0 )
-                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase);fine = false;}
+                {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_AS) ) {
             if( opdef->size() > 0 )
                 {mlogrepo(opdef->getDocPath())(Lengine::E2046,opdef->phrase);fine = false;}

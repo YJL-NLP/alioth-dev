@@ -549,12 +549,12 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "invalid parameter list for default assign operator"
+            "msg" : "invalid parameter list for operator '%B1'"
         },"2043" : {
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "invalid parameter definition for default assign operator"
+            "msg" : "invalid parameter definition '%R0' for default operator '%B1'"
         },"2044" : {
             "sev" : 1,
             "beg" : "b0",
