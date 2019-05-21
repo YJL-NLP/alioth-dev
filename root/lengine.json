@@ -584,12 +584,12 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "invalid parameter for method"
+            "msg" : "invalid parameter '%R0' for method"
         },"2050":{
             "sev" : 1,
             "beg" : "b0",
             "end" : "b0",
-            "msg" : "ambiguous call of methods"
+            "msg" : "ambiguous call of methods '%R0'"
         },"2051":{
             "sev" : 1,
             "beg" : "b0",
@@ -599,17 +599,22 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "invalid instance for data type converting expression"
+            "msg" : "invalid instance '%R0' for data type converting expression"
         },"2053":{
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "invalid target for assign expression"
+            "msg" : "invalid target '%R0' for assign expression"
         },"2054":{
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "data type doesn't match"
+            "msg" : "data type of instance '%R0' doesn't match"
+        },"2055":{
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "instance '%R0' cannot be used in binary expression of operator '%B1'"
         }
     }
 }

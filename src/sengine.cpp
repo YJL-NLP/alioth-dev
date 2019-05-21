@@ -376,7 +376,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
                 //[TODO] : generateBackendIR for <leave> method
 
                 auto proto = requestPrototype(($implementation)impl);
-                if( auto rv = insureEquivalent(proto->rproto->dtype, v, builder ); rv ) {
+                if( auto rv = insureEquivalent(proto->rproto, v, builder, Returning ); rv ) {
                     builder.CreateRet(rv->asobject(builder));
                     flag_terminate = true;
                 } else {
@@ -518,7 +518,7 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
         return nullptr;
     }
 
-    right = insureEquivalent(left->eproto()->dtype,right, builder);
+    right = insureEquivalent(left->eproto(),right,builder,Assigning);
     if( !right ) {
         mlogrepo(impl->getDocPath())(Lengine::E2054,impl->sub[1]->phrase);
         return nullptr;
@@ -596,6 +596,13 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
             auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
             return imm::object( value, proto );
         } break;
+        case VT::iFLOAT: {
+            auto i = std::stod(impl->mean.tx);
+            auto value = ConstantFP::get(builder.getContext(), APFloat(i));
+            $typeuc type = typeuc::GetBasicDataType(value->getType()->isDoubleTy()?typeuc::Float64:typeuc::Float32);
+            auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
+            return imm::object( value, proto );
+        }
         case VT::iSTRING: {
             return imm::object(
                 builder.CreateGlobalStringPtr( Xengine::extractText(impl->mean) ),
@@ -699,7 +706,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 
     auto pi = fp->prototype()->begin();
     for( auto& ai : argis ) {
-        ai = insureEquivalent( (*pi++)->proto->dtype, ai, builder );
+        ai = insureEquivalent( (*pi++)->proto, ai, builder, Passing );
         args.push_back( ai->asparameter(builder) );
     }
     
@@ -716,34 +723,73 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
 
     switch( impl->type ) {
         case ExpressionImpl::INFIX: {
+            bool fine = true;
             auto left = performImplementationSemanticValidation(impl->sub[0],builder, AsOperand);
             auto right = performImplementationSemanticValidation(impl->sub[1],builder, AsOperand);
             if( !left or !right ) return nullptr;
-            Value* rv;
-            $eproto proto;
-            switch( impl->mean.id ) {
-                default: break;
-                case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
 
-                case VT::AND: rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                case VT::OR:  rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+            auto lp = determineElementPrototype(left->eproto());
+            auto rp = determineElementPrototype(right->eproto());
+            if( !lp ) {mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[0]->phrase,impl->mean);fine = false;}
+            if( !rp ) {mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[1]->phrase,impl->mean);fine = false;}
 
-                case VT::PLUS:  rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MINUS: rv = builder.CreateSub(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MUL:   rv = builder.CreateMul(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::DIV:   rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITOR: rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
-                case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(), OBJ, typeuc::GetBasicDataType(VT::INT32));break;
+            if( lp->dtype->is(typeuc::BasicType) and rp->dtype->is(typeuc::BasicType) ) {
+                Value* rv;
+                $eproto proto;
+                auto accl = getAccuracy(lp->dtype);
+                auto accr = getAccuracy(rp->dtype);
+                if( accl > accr ) {
+                    proto = lp;
+                    right = insureEquivalent(lp, right, builder, Calculating );
+                } else if( accl < accr ) {
+                    proto = rp;
+                    left = insureEquivalent(rp, left, builder, Calculating );
+                } else if( !checkEquivalent(lp->dtype,rp->dtype) ) {
+                    mlogrepo(impl->getDocPath())(Lengine::E2054,impl->phrase);
+                    return nullptr;
+                }
+                switch( impl->mean.id ) {
+                    default: {
+                        if( proto->dtype->is(typeuc::FloatPointType) ) {
+                            mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[0]->phrase,impl->mean);
+                            mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[1]->phrase,impl->mean);
+                            return nullptr;
+                        }
+                        switch( impl->mean.id ) {
+                            case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::BITOR: rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::SHL: rv = builder.CreateShl(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::SHR: rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder)); break;
+                            return nullptr;
+                        }
+                    }
+                    case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+
+                    case VT::AND: rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); break;
+                    case VT::OR:  rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); break;
+
+                    case VT::PLUS:  rv = proto->dtype->is(typeuc::FloatPointType)?
+                        builder.CreateFAdd(left->asobject(builder),right->asobject(builder)):
+                        builder.CreateAdd(left->asobject(builder),right->asobject(builder)); break;
+                    case VT::MINUS: rv = proto->dtype->is(typeuc::FloatPointType)?
+                        builder.CreateFSub(left->asobject(builder),right->asobject(builder)):
+                        builder.CreateSub(left->asobject(builder),right->asobject(builder)); break;
+                    case VT::MUL:   rv = proto->dtype->is(typeuc::FloatPointType)?
+                        builder.CreateFMul(left->asobject(builder),right->asobject(builder)):
+                        builder.CreateMul(left->asobject(builder),right->asobject(builder)); break;
+                    case VT::DIV:   rv = proto->dtype->is(typeuc::FloatPointType)?
+                        builder.CreateFDiv(left->asobject(builder),right->asobject(builder)):
+                        builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); break;
+                }
+                return imm::object( rv, proto );
             }
-
-            return imm::object( rv, proto );
         } break;
         case ExpressionImpl::SUFFIX: {
             auto operand = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
@@ -813,30 +859,7 @@ $imm Sengine::processConvertExpression( $ExpressionImpl impl, IRBuilder<>& build
     auto src = proto->dtype;
     if( checkEquivalent(dst,src) ) return value;
 
-    auto dstt = generateTypeUsage(dst);
-    auto val = value->asobject(builder);
-
-    if( src->is(typeuc::SignedIntegerType) ) {
-        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true), droto->copy() );
-        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true),droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateSIToFP(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
-    } else if( src->is(typeuc::UnsignedIntegerType) ) {
-        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false), droto->copy() );
-        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false),droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateUIToFP(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
-    } else if( src->is(typeuc::PointerType) ) {
-        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreatePtrToInt(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateBitCast(val,dstt), droto->copy() );
-    } else if( src->is(typeuc::FloatPointType) ) {
-        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
-    } else if( src->is(typeuc::CompositeType) ) {
-
-    }
-
-    return nullptr;
+    return doConvert( dst, value, builder );
 }
 
 bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm::IRBuilder<>& builder ) {
@@ -850,7 +873,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     if( impl->init ) {
         inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
         if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
-            inm = insureEquivalent(impl->proto->dtype,inm,builder);
+            inm = insureEquivalent(impl->proto,inm,builder,Constructing);
         }
         if( inm ) inv = inm->asobject(builder);
         else {mlogrepo(impl->getDocPath())(Lengine::E2054,impl->init->phrase);fine = false;}
@@ -860,7 +883,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
         if( inm ) impl->proto->dtype = inm->eproto()->dtype;
         else return false;
     }
-    auto tp = generateTypeUsageAsAttribute(impl->proto);
+    auto tp = generateTypeUsageAsAttribute(impl->proto); if( !tp ) return false;
     Value* addr = builder.CreateAlloca(tp, nullptr, (string)impl->name);
     if( inv and fine ) builder.CreateStore(inv,addr);
 
@@ -991,141 +1014,6 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
     }
 
     return nullptr;
-}
-
-$typeuc Sengine::determineDataType( $typeuc type ) {
-    if( type->is(typeuc::NamedType) ) {
-        auto eve = request( type->name, NormalClass );
-
-        if( eve.size() != 1 ) {
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
-                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
-            return nullptr;
-        }
-        if( auto cdef = ($ClassDef)eve[0]; cdef ) {
-            type->id = typeuc::CompositeType;
-            type->sub = cdef;
-            return type;
-        } else {
-            type->id = typeuc::UnsolvableType;
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
-                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
-            return nullptr;
-        }
-    } else if( type->is(typeuc::ThisClassType) ) {
-        if( auto scope = ($definition)type->sub; scope ) {
-            while( scope and !scope->is(CLASSDEF) ) scope = scope->getScope();
-            if( scope ) {
-                type->sub = scope;
-                type->name *= scope->name;
-                type->id = typeuc::CompositeType;
-                return type;
-            } else {
-                type->id = typeuc::UnsolvableType;
-                mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
-                    (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
-                return nullptr;
-            }
-        } else if( auto def = requestThisClass(($implementation)type->sub); def ) {
-            type->sub = def;
-            type->name *= scope->name;
-            type->id = typeuc::CompositeType;
-            return type;
-        } else {
-            type->id = typeuc::UnsolvableType;
-            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
-                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
-            return nullptr;
-        }
-    } else if( type->is(typeuc::UndeterminedType) ) {
-        return nullptr;
-    } else if( auto sub = ($typeuc)type->sub; sub ) {
-        if( type->is(typeuc::NullPointerType) or determineDataType(sub) ) return type;
-        return nullptr;
-    } else {
-        return type;
-    }
-}
-
-/*
-$typeuc Sengine::determineDataType( $ExpressionImpl impl ) {
-    if( !impl ) return nullptr;
-
-    switch( impl->type ) {
-        case ExpressionImpl::VALUE: switch( impl->mean.id ) {
-            case VT::iINTEGERn:
-                return typeuc::GetBasicDataType(typeuc::Int32);
-            case VT::iINTEGERb: 
-                if( auto len = impl->mean.tx.length() - 2;
-                    len <= 8 ) return typeuc::GetBasicDataType(typeuc::Uint8);
-                    else if( len <= 16 ) return typeuc::GetBasicDataType(typeuc::Uint16);
-                    else if( len <= 32 ) return typeuc::GetBasicDataType(typeuc::Uint32);
-                    else if( len <= 64 ) return typeuc::GetBasicDataType(typeuc::Uint64);
-                    else return nullptr;
-                break;
-            case VT::iINTEGERh:
-                if( auto len = impl->mean.tx.length() - 2;
-                    len <= 2 ) return typeuc::GetBasicDataType(typeuc::Uint8);
-                    else if( len <= 4 ) return typeuc::GetBasicDataType(typeuc::Uint16);
-                    else if( len <= 8 ) return typeuc::GetBasicDataType(typeuc::Uint32);
-                    else if( len <= 16 ) return typeuc::GetBasicDataType(typeuc::Uint64);
-                    else return nullptr;
-                break;
-            case VT::iINTEGERo:
-                if( auto len = impl->mean.tx.length() - 2;
-                    len <= 3 ) return typeuc::GetBasicDataType(typeuc::Uint8);
-                    else if( len <= 6 ) return typeuc::GetBasicDataType(typeuc::Uint16);
-                    else if( len <= 12 ) return typeuc::GetBasicDataType(typeuc::Uint32);
-                    else if( len <= 24 ) return typeuc::GetBasicDataType(typeuc::Uint64);
-                    else return nullptr;
-                break;
-            case VT::iSTRING:
-                return typeuc::GetBasicDataType(typeuc::Int8)->getPointerTo();
-            case VT::iCHAR:
-                return typeuc::GetBasicDataType(typeuc::Int8);
-            case VT::iNULL:
-                return typeuc::GetPointerType();
-            case VT::iTHIS:
-                return typeuc::GetCompositeType(requestThisClass(($implementation)impl));
-            case VT::iTRUE:
-                return typeuc::GetBasicDataType(typeuc::BooleanType);
-            case VT::iFALSE:
-                return typeuc::GetBasicDataType(typeuc::BooleanType);
-        } break;
-        case ExpressionImpl::NAMEUSAGE:
-
-        case ExpressionImpl::MEMBER:
-        case ExpressionImpl::INFIX:
-        case ExpressionImpl::SUFFIX:
-        case ExpressionImpl::PREFIX:
-        case ExpressionImpl::ASSIGN:
-            return determineDataType( impl->sub[0] );
-        case ExpressionImpl::CALL:
-
-        default: return nullptr;
-    }
-}
-*/
-
-$eproto Sengine::determineElementPrototype( $eproto proto ) {
-    if( !proto ) return nullptr;
-    if( !determineDataType(proto->dtype) ) return nullptr;
-    if( proto->elmt == UDF ) {
-        if( proto->dtype->is(typeuc::PointerType) ) proto->elmt = PTR;
-        else proto->elmt = OBJ;
-    }  else if( proto->elmt == PTR ) {
-        if( !proto->dtype->is(typeuc::PointerType) ) {
-            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
-            return nullptr;
-        }
-    } else if( proto->elmt == OBJ ) {
-        if( proto->dtype->is(typeuc::PointerType) ) {
-            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
-            return nullptr;
-        }
-    }
-
-    return proto;
 }
 
 std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
@@ -1447,14 +1335,186 @@ bool Sengine::checkEquivalent( $typeuc dst, $typeuc src ) {
     return true;
 }
 
-$imm Sengine::insureEquivalent( $typeuc dst, $imm src, IRBuilder<>& builder ) {
-    if( !dst or !src or !src->eproto() ) return nullptr;
-    if( !determineDataType(dst) ) return nullptr;
-    if( auto proto = src->eproto(); proto->dtype->is(typeuc::NullPointerType) and dst->is(typeuc::PointerType) ) {
-        auto ty = generateTypeUsage(dst);
-        src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dst->name.getScope(),PTR,dst));
+$imm Sengine::insureEquivalent( $eproto dproto, $imm src, IRBuilder<>& builder, Situation s ) {
+    if( !determineElementPrototype(dproto) or !src or !src->eproto() ) return nullptr;
+    auto sproto = determineElementPrototype(src->eproto());
+    if( !sproto ) return nullptr;
+
+    switch( s ) {
+        case Situation::Assigning:
+            if( checkEquivalent( dproto, sproto ) ) return src;
+            if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
+                    return doConvert( dproto->dtype, src, builder );
+            } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
+                auto ty = generateTypeUsage(dproto->dtype);
+                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+            } break;
+        case Situation::Calculating:
+            if( checkEquivalent(dproto,sproto) ) return src;
+            if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
+                    return doConvert( dproto->dtype, src, builder );
+            } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
+                auto ty = generateTypeUsage(dproto->dtype);
+                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+            } break;
+            break;
+        case Situation::Constructing:
+            if( checkEquivalent(dproto,sproto) ) return src;
+            if( sproto->dtype->is(typeuc::BasicType) ) {
+                if( !dproto->dtype->is(typeuc::BasicType) ) return nullptr;
+                if( dproto->elmt == REF and !dproto->cons ) return nullptr;
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return doConvert( dproto->dtype, src, builder );
+            } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
+                auto ty = generateTypeUsage(dproto->dtype);
+                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+            } break;
+        case Situation::Passing:
+            if( checkEquivalent(dproto,sproto) ) return src;
+            if( sproto->dtype->is(typeuc::BasicType) ) {
+                if( !dproto->dtype->is(typeuc::BasicType) ) return nullptr;
+                if( dproto->elmt == REF and !dproto->cons ) return nullptr;
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return doConvert( dproto->dtype, src, builder );
+            } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
+                auto ty = generateTypeUsage(dproto->dtype);
+                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+            } else {
+                //[TODO]: 复合数据类型的转换
+            }
+            break;
+        case Situation::Returning:
+            if( checkEquivalent(dproto,sproto) ) return src;
+            if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
+                    return doConvert( dproto->dtype, src, builder );
+            } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
+                auto ty = generateTypeUsage(dproto->dtype);
+                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+            } break;
+            break;
+        default:break;
     }
-    if( checkEquivalent(dst,src->eproto()->dtype) ) return src;
+    return nullptr;
+}
+
+int Sengine::getAccuracy( $typeuc basic ) {
+    if( !basic or !basic->is(typeuc::BasicType) ) return 0;
+
+    switch( basic->id ) {
+        case typeuc::Float64: 64+100;
+        case typeuc::Float32: 32+100;
+        case typeuc::Int64: case typeuc::Uint64: return 64;
+        case typeuc::Int32: case typeuc::Uint32: return 32;
+        case typeuc::Int16: case typeuc::Uint16: return 16;
+        case typeuc::Int8: case typeuc::Uint8: return 8;
+        case typeuc::BooleanType: return 1;
+        default: return 0;
+    }
+}
+
+$typeuc Sengine::determineDataType( $typeuc type ) {
+    if( type->is(typeuc::NamedType) ) {
+        auto eve = request( type->name, NormalClass );
+
+        if( eve.size() != 1 ) {
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+        if( auto cdef = ($ClassDef)eve[0]; cdef ) {
+            type->id = typeuc::CompositeType;
+            type->sub = cdef;
+            return type;
+        } else {
+            type->id = typeuc::UnsolvableType;
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+    } else if( type->is(typeuc::ThisClassType) ) {
+        if( auto scope = ($definition)type->sub; scope ) {
+            while( scope and !scope->is(CLASSDEF) ) scope = scope->getScope();
+            if( scope ) {
+                type->sub = scope;
+                type->name *= scope->name;
+                type->id = typeuc::CompositeType;
+                return type;
+            } else {
+                type->id = typeuc::UnsolvableType;
+                mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                    (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+                return nullptr;
+            }
+        } else if( auto def = requestThisClass(($implementation)type->sub); def ) {
+            type->sub = def;
+            type->name *= scope->name;
+            type->id = typeuc::CompositeType;
+            return type;
+        } else {
+            type->id = typeuc::UnsolvableType;
+            mlogrepo(type->name.getScope()->getDocPath())(Lengine::E2040,type->phrase)
+                (type->name.getScope()->getDocPath(),Lengine::E2004,type->name[-1].name);
+            return nullptr;
+        }
+    } else if( type->is(typeuc::UndeterminedType) ) {
+        return nullptr;
+    } else if( auto sub = ($typeuc)type->sub; sub ) {
+        if( type->is(typeuc::NullPointerType) or determineDataType(sub) ) return type;
+        return nullptr;
+    } else {
+        return type;
+    }
+}
+
+$eproto Sengine::determineElementPrototype( $eproto proto ) {
+    if( !proto ) return nullptr;
+    if( !determineDataType(proto->dtype) ) return nullptr;
+    if( proto->elmt == UDF ) {
+        if( proto->dtype->is(typeuc::PointerType) ) proto->elmt = PTR;
+        else proto->elmt = OBJ;
+    }  else if( proto->elmt == PTR ) {
+        if( !proto->dtype->is(typeuc::PointerType) ) {
+            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+            return nullptr;
+        }
+    } else if( proto->elmt == OBJ ) {
+        if( proto->dtype->is(typeuc::PointerType) ) {
+            mlogrepo(proto->dtype->name.getScope()->getDocPath())(Lengine::E2039,proto->phrase);
+            return nullptr;
+        }
+    }
+
+    return proto;
+}
+
+$imm Sengine::doConvert( $typeuc dst, $imm value, IRBuilder<>& builder ) {
+    auto dstt = generateTypeUsage(dst);
+    auto val = value->asobject(builder);
+    auto src = value->eproto()->dtype;
+    auto droto = eproto::MakeUp( dst->name.getScope(), dst->is(typeuc::PointerType)?PTR:src->is(typeuc::CompositeType)?REF:OBJ, dst );
+
+    if( src->is(typeuc::SignedIntegerType) ) {
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateSIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::UnsignedIntegerType) ) {
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateUIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::PointerType) ) {
+        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreatePtrToInt(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateBitCast(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::FloatPointType) ) {
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateFPToSI(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateFPToUI(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
+    } else if( src->is(typeuc::CompositeType) ) {
+        //[TODO]: 完成复合数据类型的类型转换
+    }
+
     return nullptr;
 }
 

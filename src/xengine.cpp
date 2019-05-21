@@ -443,8 +443,8 @@ tokens Xengine::extractTokens( std::istream& is, bool limit ) {
             [[fallthrough]];
         case 50:
             if( pre == '8' or pre == '9' ) continue;
-            else if( pre == '.' ) state = 53;
-            else if( pre == 'e' ) state = 55;
+            else if( pre == '.' ) {state = 53;break;}
+            else if( pre == 'e' ) {state = 55;break;}
             [[fallthrough]];
         case 51:
             if( pre >= '2' and pre <= '7' ) continue;

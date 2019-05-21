@@ -43,7 +43,7 @@ class Sengine {
         enum Len{ ThisClass, SuperClass, NormalClass };
 
         /** 检查数据类型兼容性时,判断场景 */
-        enum Situation{ Passing, Calculating, Returning };
+        enum Situation{ Passing, Calculating, Returning, Assigning, Constructing };
 
         /** 检查表达式语义时，表达式所处的位置特征 */
         enum Position{
@@ -318,21 +318,6 @@ class Sengine {
         Type* generateTypeUsage( $typeuc type );
 
         /**
-         * @method determineTypeUsage : 推导数据类型
-         * @desc :
-         *  查询语法树,寻找命名数据类型对应的类定义
-         *  若类定义不存在或存在多个,查询失败,日志被写入日志仓库
-         * @param type : 若类型是命名的数据类型,则需要推导,其他直接返回
-         *  若推导成功,源数据类型会被修改为CompositeType以缓冲推导结果
-         *  若失败,源数据类型被设置成UnsolvableType并返回nullptr
-         * @param expr : 待推导数据类型的表达式
-         * @return : 推导的数据类型
-         */
-        $typeuc determineDataType( $typeuc type );
-        // $typeuc determineDataType( $ExpressionImpl expr );
-        $eproto determineElementPrototype( $eproto );
-
-        /**
          * @method generateGlobalUniqueName : 产生全局唯一名称
          * @desc :
          *  为语法结构产生全局唯一名称
@@ -387,7 +372,48 @@ class Sengine {
          */
         bool checkEquivalent( $eproto dst, $eproto src );
         bool checkEquivalent( $typeuc dst, $typeuc src );
-        $imm insureEquivalent( $typeuc dst, $imm src, IRBuilder<>& builder );
+
+        /**
+         * @method insureEquivalent : 检查并确保数据类型的全等性
+         * @desc :
+         *  检查数据类型是否全等,必要时执行数据类型转换。
+         * @param dst: 目标元素原型
+         * @param src: 要转换的imm
+         * @param builder: 用于生成指令的bilder
+         * @param s: 使用场景
+         * @return $imm: 若转换失败则返回空，否则返回新的imm
+         */
+        $imm insureEquivalent( $eproto dst, $imm src, IRBuilder<>& builder, Situation s );
+
+        /**
+         * @method getAccuracy : 获取精确度
+         * @desc :
+         *  获取基础数据类型的精确度，数字越高，代表精度越高
+         *  float64 int64 uint64
+         *  float32 int32 uint32
+         *  int16 uint16
+         *  int8 uint8
+         *  bool
+         *  void
+         * @param basic : 基础数据类型
+         * @return int : 若检测失败，或数据类型不是基础数据类型，则返回 0
+         */
+        int getAccuracy( $typeuc basic );
+
+        /**
+         * @method determineTypeUsage : 推导数据类型
+         * @desc :
+         *  查询语法树,寻找命名数据类型对应的类定义
+         *  若类定义不存在或存在多个,查询失败,日志被写入日志仓库
+         * @param type : 若类型是命名的数据类型,则需要推导,其他直接返回
+         *  若推导成功,源数据类型会被修改为CompositeType以缓冲推导结果
+         *  若失败,源数据类型被设置成UnsolvableType并返回nullptr
+         * @param expr : 待推导数据类型的表达式
+         * @return : 推导的数据类型
+         */
+        $typeuc determineDataType( $typeuc type );
+        $eproto determineElementPrototype( $eproto );
+        $imm doConvert( $typeuc dst, $imm src, IRBuilder<>& builder );
 
         /**
          * @method checkCompatibility : 检查数据类型兼容性
