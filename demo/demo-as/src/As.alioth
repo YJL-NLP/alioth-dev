@@ -6,5 +6,6 @@ class Asx {
 
 method Asx main( argc int32, argv **int8 ) int32 {
     obj a float64 = 3;
-    a = 3.3 << 33;
+    a = 3 << 33;
+    return 
 }

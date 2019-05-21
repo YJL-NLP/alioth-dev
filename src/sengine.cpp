@@ -333,7 +333,17 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     }
 
     flag_terminate = false;
-    return performImplementationSemanticValidation( method->body, builder );
+    if( !performImplementationSemanticValidation( method->body, builder ) ) return false;
+
+    if( !flag_terminate ) {
+        token token = method->body->impls.size()?
+            method->body->impls[-1]->phrase:
+            method->body->phrase;
+        mlogrepo(method->getDocPath())(Lengine::E2056,token,method->name);
+        return false;
+    }
+
+    return true;
 }
 
 bool Sengine::performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder, Position pos ) {
@@ -369,21 +379,22 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
         mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
         return false;
     } 
+    auto proto = requestPrototype(($implementation)impl);
     switch( impl->action ) {
         case RETURN: {
             if( impl->expr ) {
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal ); if( !v ) return false;
                 //[TODO] : generateBackendIR for <leave> method
 
-                auto proto = requestPrototype(($implementation)impl);
                 if( auto rv = insureEquivalent(proto->rproto, v, builder, Returning ); rv ) {
                     builder.CreateRet(rv->asobject(builder));
                     flag_terminate = true;
                 } else {
-                    //[TODO]: 报告错误
                     mlogrepo(impl->getDocPath())(Lengine::E2054,impl->expr->phrase);
                     return false;
                 }
+            } else if( !proto->rproto->dtype->is(typeuc::VoidType) ) {
+                mlogrepo(impl->getDocPath())(Lengine::E2057,impl->phrase,proto->rproto->dtype->phrase);
             } else {
                 builder.CreateRetVoid();
                 flag_terminate = true;
@@ -747,6 +758,8 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                 } else if( !checkEquivalent(lp->dtype,rp->dtype) ) {
                     mlogrepo(impl->getDocPath())(Lengine::E2054,impl->phrase);
                     return nullptr;
+                } else {
+                    proto = lp;
                 }
                 switch( impl->mean.id ) {
                     default: {
@@ -762,9 +775,9 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                             case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); break;
                             case VT::SHL: rv = builder.CreateShl(left->asobject(builder),right->asobject(builder)); break;
                             case VT::SHR: rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder)); break;
-                            return nullptr;
+                            default: return nullptr;
                         }
-                    }
+                    } break;
                     case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
                     case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
                     case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;

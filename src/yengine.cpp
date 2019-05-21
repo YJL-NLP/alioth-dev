@@ -57,7 +57,7 @@ void Yengine::smachine::redu(int c, VN n ) {
             //node.insert( std::move(*(--it)), 0 );
             node.bl = (it-1)->bl;
             node.bc = (it-1)->bc;
-            if( isalpha(node.tx[0]) and isalpha((it-1)->tx.back()) ) node.tx = (it-1)->tx + " " + node.tx;
+            if( isalnum(node.tx[0]) and isalnum((it-1)->tx.back()) ) node.tx = (it-1)->tx + " " + node.tx;
             else node.tx = (it-1)->tx + node.tx;
             (--it).r.remove(it.pos);
         }
@@ -101,6 +101,7 @@ nameuc::atom Yengine::constructAtomicNameUseCase( tokens::iterator& it, Lengine:
             } break;
         case 3:
             if( it->is(VT::SHR) ) {
+                it->tx = ">";
                 it.r.insert(*it,it.pos);
                 it->ec -= 1;
                 it->id = (it+1)->id = VT::GT;
@@ -575,6 +576,7 @@ $eproto Yengine::constructElementPrototype( tokens::iterator& it, Lengine::logs&
         it->id = VT::SPACE;
         it->el = it->bl;
         it->ec = it->bc;
+        it->tx = " ";
         ret->elmt = UDF;
     }
 

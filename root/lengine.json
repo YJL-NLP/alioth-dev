@@ -615,6 +615,16 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "instance '%R0' cannot be used in binary expression of operator '%B1'"
+        },"2056":{
+            "sev" : 1,
+            "beg" : "e0",
+            "end" : "e0",
+            "msg" : "terminator instruction for method '%R1' missing"
+        },"2057":{
+            "sev" : 1,
+            "beg" : "e0",
+            "end" : "e0",
+            "msg" : "return value expression with data type '%B1' is missing"
         }
     }
 }
