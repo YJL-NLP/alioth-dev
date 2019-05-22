@@ -50,16 +50,49 @@ Value* imm::asaddress( IRBuilder<>& builder )const {
             else return v;
     }
 }
+bool imm::hasaddress()const{
+    if( !v ) return false;
+    auto proto = ($eproto)p;
+    switch( t ) {
+        default: return false;
+        case ety: return true;
+        case val:
+            if( proto->elmt == REF or proto->elmt == REL ) return true;
+            else return false;
+        case adr:
+            if( proto->elmt == REF or proto->elmt == REL ) return true;
+            else return true;
+    }
+}
 
-Value* imm::asparameter( IRBuilder<>& builder, $eproto req )const {
+Value* imm::asparameter( IRBuilder<>& builder, etype e )const {
     if( !v ) return nullptr;
     auto proto = ($eproto)p;
     switch( t ) {
         default: return nullptr;
-        case ety:case val: return v;
+        case ety:
+            if( e == PTR )
+                return nullptr;
+            else
+                return v;
+        case val: 
+            if( e == REF or e == REL )
+                return nullptr;
+            else
+                return v;
         case adr: 
-            if( proto->elmt == OBJ and proto->dtype->is(typeuc::CompositeType) ) return v;
-            else return builder.CreateLoad(v);
+            if( e == OBJ )
+                if( proto->dtype->is(typeuc::CompositeType) ) return v;
+                else return builder.CreateLoad(v);
+            else if( e == PTR )
+                if( proto->dtype->is(typeuc::PointerType) ) return builder.CreateLoad(v);
+                else return nullptr;
+            else if( e == REF )
+                return v;
+            else if( e == REL )
+                return v;
+            else
+                return nullptr;
     }
 }
 

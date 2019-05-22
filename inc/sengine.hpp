@@ -386,6 +386,13 @@ class Sengine {
         $imm insureEquivalent( $eproto dst, $imm src, IRBuilder<>& builder, Situation s );
 
         /**
+         * @method insureEquivalent : 检查数据类型是否相容
+         * @desc :
+         *  检查数据类型是否能转换到目标数据类型
+         */
+        bool insureEquivalent( $eproto dst, $imm src, Situation s );
+
+        /**
          * @method getAccuracy : 获取精确度
          * @desc :
          *  获取基础数据类型的精确度，数字越高，代表精度越高

@@ -1206,8 +1206,6 @@ $MethodDef Yengine::constructMethodDefinition( tokens::iterator& it, Lengine::lo
             } else if( it->is(VT::OBJ) ) {
                 log(Lengine::E308,*it);
                 return  nullptr;
-            } else if( it->is(VT::VOID) ) {
-                stack.redu(0,VN::PROTO);
             } else if( auto proto = constructElementPrototype(it,log,scope,true); proto ) {
                 ret->rproto = move(proto);
             } else {

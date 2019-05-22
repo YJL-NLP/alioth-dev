@@ -687,38 +687,54 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     }
     if( err ) return nullptr;
 
-    $imm fp = nullptr;
+    for( auto fp = fps.begin(); fp != fps.end(); fp++ ) {
+        auto mproto = (*fp)->prototype();
+        if( !mproto ) {fps.remove(fp--.pos);continue;}
+        if( mproto->size() != argis.size() ) 
+            fps.remove(fp--.pos); // [TODO]: 支持默认参数
+    }
+
+    for( int i = 0; i < argis.size(); i++ ) {
+        auto& ai = argis[i];
+        for( auto fpi = fps.begin(); fpi != fps.end(); fpi++ ) {
+            auto mproto = (*fpi)->prototype();
+            if( !insureEquivalent( (*mproto)[i]->proto, ai, Passing ) )
+                fps.remove(fpi--.pos);
+        }
+    }
+
+    $imm alleqfp = nullptr;
+    Lengine::logi* log = nullptr;
     for( auto tfp : fps ) {
-        if( !tfp->asfunction() ) continue;
         auto mproto = tfp->prototype();
-        if( !mproto or mproto->size() != argis.size() ) continue;
         bool continu = false;
-        auto it = argis.begin();
-        for( auto par : *tfp->prototype() ) {
+
+        auto it = argis.begin(); for( auto par : *mproto ) {
             if( !checkEquivalent( par->proto->dtype, (*it)->eproto()->dtype ) ) continu = true;
             it++;
         }
         if( continu ) continue;
-        if( fp ) {
-            mlogrepo(impl->getDocPath())(Lengine::E2050,impl->phrase)
-                (fp->prototype()->getDocPath(),Lengine::E2010,fp->prototype()->name)
-                (mproto->getDocPath(),Lengine::E2010,mproto->name);
-            err = true;
+        if( alleqfp ) {
+            if( !log ) log = &mlogrepo(impl->getDocPath())(Lengine::E2050,impl->phrase)
+                (alleqfp->prototype()->getDocPath(),Lengine::E2010,alleqfp->prototype()->name);
+            (*log)(mproto->getDocPath(),Lengine::E2010,mproto->name);
+            err = true; //important
         } else {
-            fp = tfp;
+            alleqfp = tfp;
         }
     }
 
     std::vector<Value*> args;
-    if( !fp or err ) {
-        if( !fp ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
+    if( fps.size() == 0 or err or !alleqfp and fps.size() > 1 ) {
+        if( !err ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
         return nullptr;
     }
 
+    auto fp = alleqfp?alleqfp:fps[0];
     auto pi = fp->prototype()->begin();
     for( auto& ai : argis ) {
-        ai = insureEquivalent( (*pi++)->proto, ai, builder, Passing );
-        args.push_back( ai->asparameter(builder) );
+        ai = insureEquivalent( (*pi)->proto, ai, builder, Passing );
+        args.push_back( ai->asparameter(builder,(*pi++)->proto->elmt) );
     }
     
     if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
@@ -1007,13 +1023,14 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
     if( type->is(typeuc::BasicType) ) {
         switch( type->id ) {
             default : return nullptr;
-            case typeuc::BooleanType                :  return Type::getInt1Ty(mctx);    break;
-            case typeuc::Int8:  case typeuc::Uint8  :  return Type::getInt8Ty(mctx);    break;
-            case typeuc::Int16: case typeuc::Uint16 :  return Type::getInt16Ty(mctx);   break;
-            case typeuc::Int32: case typeuc::Uint32 :  return Type::getInt32Ty(mctx);   break;
-            case typeuc::Int64: case typeuc::Uint64 :  return Type::getInt64Ty(mctx);   break;
-            case typeuc::Float32                    :  return Type::getFloatTy(mctx);   break;
-            case typeuc::Float64                    :  return Type::getDoubleTy(mctx);  break;
+            case typeuc::BooleanType                :   return Type::getInt1Ty(mctx);    break;
+            case typeuc::Int8:  case typeuc::Uint8  :   return Type::getInt8Ty(mctx);    break;
+            case typeuc::Int16: case typeuc::Uint16 :   return Type::getInt16Ty(mctx);   break;
+            case typeuc::Int32: case typeuc::Uint32 :   return Type::getInt32Ty(mctx);   break;
+            case typeuc::Int64: case typeuc::Uint64 :   return Type::getInt64Ty(mctx);   break;
+            case typeuc::Float32                    :   return Type::getFloatTy(mctx);   break;
+            case typeuc::Float64                    :   return Type::getDoubleTy(mctx);  break;
+            case typeuc::VoidType                   :   return Type::getVoidTy(mctx);    break;
         }
     } else if( type->is(typeuc::UndeterminedType) ) {
         return generateTypeUsage(determineDataType(type));
@@ -1349,49 +1366,54 @@ bool Sengine::checkEquivalent( $typeuc dst, $typeuc src ) {
 }
 
 $imm Sengine::insureEquivalent( $eproto dproto, $imm src, IRBuilder<>& builder, Situation s ) {
-    if( !determineElementPrototype(dproto) or !src or !src->eproto() ) return nullptr;
+    if( insureEquivalent( dproto, src, s ) ) return doConvert( dproto->dtype, src, builder );
+    else return nullptr;
+}
+
+bool Sengine::insureEquivalent( $eproto dproto, $imm src, Situation s ) {
+    if( !determineElementPrototype(dproto) or !src or !src->eproto() ) return false;
     auto sproto = determineElementPrototype(src->eproto());
-    if( !sproto ) return nullptr;
+    if( !sproto ) return false;
 
     switch( s ) {
         case Situation::Assigning:
             if( checkEquivalent( dproto, sproto ) ) return src;
             if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
                 if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
-                    return doConvert( dproto->dtype, src, builder );
+                    return true;
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
-                auto ty = generateTypeUsage(dproto->dtype);
-                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+                return true;
             } break;
         case Situation::Calculating:
             if( checkEquivalent(dproto,sproto) ) return src;
             if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
                 if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
-                    return doConvert( dproto->dtype, src, builder );
+                    return true;
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
-                auto ty = generateTypeUsage(dproto->dtype);
-                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+                return true;
             } break;
             break;
         case Situation::Constructing:
             if( checkEquivalent(dproto,sproto) ) return src;
             if( sproto->dtype->is(typeuc::BasicType) ) {
-                if( !dproto->dtype->is(typeuc::BasicType) ) return nullptr;
-                if( dproto->elmt == REF and !dproto->cons ) return nullptr;
-                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return doConvert( dproto->dtype, src, builder );
+                if( !dproto->dtype->is(typeuc::BasicType) ) return false;
+                if( dproto->elmt == REF and !dproto->cons ) return false;
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return true;
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
-                auto ty = generateTypeUsage(dproto->dtype);
-                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+                return true;
             } break;
         case Situation::Passing:
-            if( checkEquivalent(dproto,sproto) ) return src;
-            if( sproto->dtype->is(typeuc::BasicType) ) {
-                if( !dproto->dtype->is(typeuc::BasicType) ) return nullptr;
-                if( dproto->elmt == REF and !dproto->cons ) return nullptr;
-                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return doConvert( dproto->dtype, src, builder );
+            if( checkEquivalent(dproto->dtype,sproto->dtype) ) {
+                if( dproto->elmt == REF or dproto->elmt == REL )
+                    return src->hasaddress()?true:false;
+                else
+                    return true;
+            } else if( sproto->dtype->is(typeuc::BasicType) ) {
+                if( !dproto->dtype->is(typeuc::BasicType) ) return false;
+                if( dproto->elmt == REF and !dproto->cons ) return false;
+                if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) return true;
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
-                auto ty = generateTypeUsage(dproto->dtype);
-                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+                return true;
             } else {
                 //[TODO]: 复合数据类型的转换
             }
@@ -1400,15 +1422,14 @@ $imm Sengine::insureEquivalent( $eproto dproto, $imm src, IRBuilder<>& builder, 
             if( checkEquivalent(dproto,sproto) ) return src;
             if( sproto->dtype->is(typeuc::BasicType) and dproto->dtype->is(typeuc::BasicType) ) {
                 if( getAccuracy(dproto->dtype) > getAccuracy(sproto->dtype) ) 
-                    return doConvert( dproto->dtype, src, builder );
+                    return true;
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
-                auto ty = generateTypeUsage(dproto->dtype);
-                src = imm::object(builder.CreatePointerCast(src->asobject(builder),ty),eproto::MakeUp(dproto->dtype->name.getScope(),PTR,dproto->dtype));
+                return true;
             } break;
             break;
         default:break;
     }
-    return nullptr;
+    return false;
 }
 
 int Sengine::getAccuracy( $typeuc basic ) {
@@ -1505,6 +1526,8 @@ $imm Sengine::doConvert( $typeuc dst, $imm value, IRBuilder<>& builder ) {
     auto dstt = generateTypeUsage(dst);
     auto val = value->asobject(builder);
     auto src = value->eproto()->dtype;
+
+    if( checkEquivalent(dst,src) ) return value;
     auto droto = eproto::MakeUp( dst->name.getScope(), dst->is(typeuc::PointerType)?PTR:src->is(typeuc::CompositeType)?REF:OBJ, dst );
 
     if( src->is(typeuc::SignedIntegerType) ) {

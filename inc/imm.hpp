@@ -103,14 +103,27 @@ struct imm : thing {
          * 3. 对于实体,直接返回
          */
         Value* asaddress( IRBuilder<>& builder )const;
+        bool hasaddress()const;
 
         /**
-         * 获取可用于传参Value*
-         * 1. 对立即寻址,执行load
-         * 2. 对立即对象,直接返回
-         * 3. 对实体,直接返回
+         * 获取可用于传参Value* 要确保请求类型和源类型完全一致
+         * 1. 对实体
+         *      若请求指针，失败
+         *      其他情况直接返回
+         * 2. 对立即对象
+         *      若请求引用或重载，失败
+         *      对其他情况，直接返回
+         * 3. 对立即寻址
+         *      若请求对象
+         *          若复合数据类型，直接返回
+         *          否则，执行load后返回
+         *      若请求指针
+         *          若不是指针数据类型，失败
+         *          否则，执行load后返回
+         *      若请求引用或重载
+         *          直接返回
          */
-        Value* asparameter( IRBuilder<>& builder, $eproto req = nullptr )const;
+        Value* asparameter( IRBuilder<>& builder, etype e )const;
 
         Value* asfunction()const;
 

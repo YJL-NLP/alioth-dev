@@ -1,20 +1,11 @@
-module Asx entry main
+module As entry main
 
-class Asx {
+class As {
     method main( argc int32, argv **int8 ) int32
 }
 
-class As {
-    operator {...} ()
-    operator {<} ( rel an this class )
-    operator default assign ( x int32 ) ref this class
-    operator {~} ()
-    operator [...] ()
-    operator member x () ref As
-}
-
-method Asx main( argc int32, argv **int8 ) int32 {
+method As main( argc int32, argv **int8 ) int32 {
     obj a float64 = 3;
-    a = 3 << 33;
+    a = 3 << 2;
     return a as int32;
 }

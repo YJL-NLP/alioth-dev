@@ -10,6 +10,6 @@ run: all
 	./bin/demo-iTalk
 
 clean:
-	rm -rf bin/* obj/*.o
+	rm -rf bin/* obj/*
 
 .PHONY: clean
