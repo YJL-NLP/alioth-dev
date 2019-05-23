@@ -625,6 +625,11 @@
             "beg" : "e0",
             "end" : "e0",
             "msg" : "return value expression with data type '%B1' is missing"
+        },"2058" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "operator domain or midifier needed but '%R0' got"
         }
     }
 }

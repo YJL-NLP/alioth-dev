@@ -643,6 +643,10 @@ $ModuleGranule Yengine::constructSyntaxTree( tokens& is, Lengine::logs& log ) {
                 auto met = constructMethodImplementation(it,log,ref);
                 if( !met ) return nullptr;
                 ref->impls << ($implementation)met;
+            } else if( it->is(VT::OPERATOR) ) {
+                auto op = constructOperatorImplementation(it,log,ref);
+                if( !op ) return nullptr;
+                ref->impls << ($implementation)op;
             } else if( it->is(VT::CLASS) ) {
                 auto cls = constructClassDefinition(it,log,ref,0);
                 if( !cls ) return nullptr;
@@ -651,7 +655,7 @@ $ModuleGranule Yengine::constructSyntaxTree( tokens& is, Lengine::logs& log ) {
                 auto enm = constructEnumDefinition(it,log,ref,0);
                 if( !enm ) return nullptr;
                 ref->defs << ($definition)enm;
-            } else if( it->is(VN::METHOD,VN::CLASS,VN::ENUM) ) {
+            } else if( it->is(VN::METHOD,VN::CLASS,VN::ENUM,VN::OPERATOR) ) {
                 stack.stay();
             } else {
                 log(Lengine::E201,*it);
@@ -1857,7 +1861,95 @@ $ConstructImpl Yengine::constructConstructImplementation( tokens::iterator& it, 
     }
     ret->phrase = *it;
     return ret;
+}
 
+$OperatorImpl Yengine::constructOperatorImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope ) {
+    smachine stack = it;
+    $OperatorImpl ret = new OperatorImpl;
+    ret->setScope(scope);
+    stack.movi(1,0);
+
+    while( stack.size() > 0 ) switch( (state)stack ) {
+        case 1:
+            if( it->is(VT::OPERATOR) ) {
+                stack.movi(2);
+            } else {
+                log(Lengine::E2035,*it);
+                return nullptr;
+            } break;
+        case 2:
+            if( it->is(VT::LABEL) ) {
+                ret->cname = constructNameUseCase( it, log, scope, true );
+                if( !ret->cname ) return nullptr;
+            } else if( it->is(VN::NAMEUC) ) {
+                stack.movi(3);
+            } else {
+                log(Lengine::E2058,*it);
+                return nullptr;
+            } break;
+        case 3:
+            if( it->is(CT::MF_REV,CT::MF_ISM,CT::PREFIX,CT::SUFFIX) ) {
+                if( ret->modifier ) {
+                    if( ret->modifier.id == it->id) {
+                        log(Lengine::E302,ret->modifier);
+                        log(Lengine::E302,*it);
+                    } else {
+                        log(Lengine::E301,ret->modifier);
+                        log(Lengine::E301,*it);
+                    }
+                    return nullptr;
+                }
+                ret->modifier = *it;
+                stack.stay();
+            } else if( it->is(VT::CONST) ) {
+                if( ret->constraint ) {
+                    log(Lengine::E302,ret->constraint);
+                    log(Lengine::E302,*it);
+                    return nullptr;
+                }
+                ret->constraint = *it;
+                stack.stay();
+            } else if( it->is(CT::OPL) ) {
+                stack.movi(4);
+            } else {
+                auto name = constructOperatorLabel(it,log,ret,*ret);
+                if( !name ) return nullptr;
+                ret->name = name;
+            } break;
+        case 4:
+            if( constructParameterList(it,log,scope,*ret) ) {
+                stack.movi(5);
+            } else {
+                return nullptr;
+            } break;
+        case 5:
+            if( ret->name.is(VN::OPL_SCTOR,VN::OPL_LCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR) ) {
+                stack.movi(7);
+            } else if( ret->name.is(VN::OPL_DTOR,VN::OPL_MOVE,VN::OPL_AS) ) {
+                stack.movi(6);
+            } else if( it->is(VN::PROTO) ) {
+                stack.movi(6);
+            } else if( auto proto = constructElementPrototype(it,log,scope,true); proto ) {
+                ret->rproto = proto;
+            } else {
+                return nullptr;
+            } break;
+        case 6:
+            if( ret->body = constructInstructionBlockImplementation(it,log,ret); ret->body ) {
+                stack.redu(6,VN::OPERATOR);
+            } else {
+                return nullptr;
+            } break;
+        case 7:
+            if( ret->body = constructConstructorImplementation(it,log,ret); ret->body ) {
+                stack.redu(6,VN::OPERATOR);
+            } else {
+                return nullptr;
+            } break;
+    }
+
+    ret->phrase = *it;
+    return ret;
 }
 
 $MethodImpl Yengine::constructMethodImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope ) {

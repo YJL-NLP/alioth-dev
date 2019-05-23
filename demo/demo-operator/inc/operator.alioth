@@ -4,10 +4,15 @@ class Op {
     method raw "Stringe" main( argc int32, argv **int8 ) int32
 
     class Sub {
-        operator default assin( ref const x this class ) ref Op::Sub
+        operator default assign( ref const x this class ) ref Op::Sub
     }
 
 }
+
+operator Op::Sub assign( ref const x this class ) Op::Sub {
+
+}
+
 
 method Op main( argc int32, argv **int8 ) int32 {
     return argc;
