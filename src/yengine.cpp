@@ -1430,24 +1430,22 @@ $InsBlockImpl Yengine::constructInstructionBlockImplementation( tokens::iterator
                 stack.redu(2,VN::BLOCK);
             } else if( it->is(CT::ELETYPE) ) {
                 auto el = constructConstructImplementation(it,log,ref);
-                if( el ) {
-                    ref->impls << ($implementation)el;
-                }
+                if( el ) ref->impls << ($implementation)el;
+                else return nullptr;
             } else if( it->is(VT::LOOP) ) {
-                if( auto loop = constructLoopimplementation(it,log,ref) ; loop )
-                    ref->impls << ($implementation) loop;
+                auto loop = constructLoopimplementation(it,log,ref);
+                if( loop ) ref->impls << ($implementation) loop;
                 else return nullptr;
             } else if( it->is(VT::SWITCH) ) {
                 stack.stay();   //[TODO]
             } else if( it->is(VT::IF) ) {
-                if( auto br = constructBranchImplementation(it,log,ref) ; br )
-                    ref->impls << ($implementation) br;
+                auto br = constructBranchImplementation(it,log,ref);
+                if( br ) ref->impls << ($implementation) br;
                 else return nullptr;
             } else if( it->is(VT::RETURN,VT::CONTINUE,VT::BREAK) ) {
-                if( auto ctl = constructFlowControlImplementation(it,log,ref); ctl )
-                    ref->impls << ($implementation)ctl;
-                else
-                    return nullptr;
+                auto ctl = constructFlowControlImplementation(it,log,ref); 
+                if( ctl ) ref->impls << ($implementation)ctl;
+                else return nullptr;
             } else if( it->is(VN::CONTROL,VN::ELEMENT,VN::EXPRESSION,VN::BRANCH,VN::LOOP) ) {
                 stack.stay();
             } else if( auto ex = constructExpressionImplementation(it,log,ref); ex ) {
@@ -1461,8 +1459,113 @@ $InsBlockImpl Yengine::constructInstructionBlockImplementation( tokens::iterator
     return ref;
 }
 
+$ConstructorImpl Yengine::constructConstructorImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope ) {
+    smachine stack = it;
+    $ConstructorImpl ret = new ConstructorImpl;
+    stack.movi(1,0);
+
+    while( stack.size() > 0 ) switch( (state)stack ) {
+        case 1:
+            if( it->is(VT::OPENS) ) {
+                stack.movi(2);
+            } else if( it->is(VN::BLOCK) ) {
+                stack.redu(1,VN::CONSTRUCTOR);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 2:
+            if( it->is(VT::SEMI) ) {
+                stack.movi(7);
+            } else if( it->is(VN::BLOCK) ) {
+                stack.redu(2,VN::CONSTRUCTOR);
+            } else if( it->is(VT::LABEL) ) {
+                auto& info = ret->construct.construct(-1);
+                info.name = constructNameUseCase(it,log,ret,true);
+                if( !info.name ) return nullptr;
+            } else if( it->is(VN::NAMEUC) ) {
+                stack.movi(5);
+            } else if( it->is(VN::EXPRESSION) ) {
+                stack.movi(3);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 3:
+            if( it->is(VT::SEMI) ) {
+                stack.movi(7);
+            } else if( it->is(VT::COMMA) ) {
+                stack.movi(4);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 4:
+            if( it->is(VN::NAMEUC) ) {
+                stack.movi(5);
+            } else if( it->is(VT::LABEL) ) {
+                auto& info = ret->construct.construct(-1);
+                info.name = constructNameUseCase(it,log,ret,true);
+                if( !info.name ) return nullptr;
+            } else if( it->is(VN::EXPRESSION) ) {
+                stack.redu(2,VN::EXPRESSION);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 5:
+            if( it->is(VT::COLON) ) {
+                stack.movi(6);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 6:
+            if( it->is(VN::EXPRESSION) ) {
+                stack.redu(2,VN::EXPRESSION);
+            } else if( auto exp = constructExpressionImplementation(it,log,ret); exp ) {
+                ret->construct[-1].ctor = exp;
+            } else {
+                return nullptr;
+            } break;
+        case 7:
+            if( it->is(VT::SEMI) ) {
+                stack.stay();
+            } else if( it->is(VT::CLOSES) ) {
+                stack.redu(1,VN::BLOCK);
+            } else if( it->is(CT::ELETYPE) ) {
+                auto el = constructConstructImplementation(it,log,ret);
+                if( el ) ret->initiate << ($implementation)el;
+                else return nullptr;
+            } else if( it->is(VT::LOOP) ) {
+                auto loop = constructLoopimplementation(it,log,ret);
+                if( loop ) ret->initiate << ($implementation) loop;
+                else return nullptr;
+            } else if( it->is(VT::SWITCH) ) {
+                stack.stay();   //[TODO]
+            } else if( it->is(VT::IF) ) {
+                auto br = constructBranchImplementation(it,log,ret);
+                if( br ) ret->initiate << ($implementation) br;
+                else return nullptr;
+            } else if( it->is(VT::RETURN,VT::CONTINUE,VT::BREAK) ) {
+                auto ctl = constructFlowControlImplementation(it,log,ret); 
+                if( ctl ) ret->initiate << ($implementation)ctl;
+                else return nullptr;
+            } else if( it->is(VN::CONTROL,VN::ELEMENT,VN::EXPRESSION,VN::BRANCH,VN::LOOP) ) {
+                stack.stay();
+            } else if( auto ex = constructExpressionImplementation(it,log,ret); ex ) {
+                ret->initiate << ($implementation)ex;
+            } else {
+                return nullptr;
+            } break;
+    }
+
+    ret->phrase = *it;
+    return ret;
+}
+
 $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope ) {
-    smachine stack =it;
+    smachine stack = it;
     $ExpressionImpl ret = new ExpressionImpl;
     stack.movi(1,0);
 

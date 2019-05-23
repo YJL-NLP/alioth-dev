@@ -34,6 +34,7 @@ enum class VN {
     EXPRESSION,
     CONTROL,
     BLOCK,
+    CONSTRUCTOR,
     LIST,
 
     BRANCH,

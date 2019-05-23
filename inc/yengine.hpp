@@ -19,6 +19,7 @@
 #include "modulegranule.hpp"
 #include "constructimpl.hpp"
 #include "expressionimpl.hpp"
+#include "constructorimpl.hpp"
 #include "modulesignature.hpp"
 
 namespace alioth {
@@ -305,6 +306,7 @@ class Yengine {
         $AttrDef constructAttributeDefinition( tokens::iterator& it, Lengine::logs& log, $ClassDef sc, int wn );
         $OperatorDef constructOperatorDefinition( tokens::iterator& it, Lengine::logs& log, $scope scope, int wn );
         $InsBlockImpl constructInstructionBlockImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
+        $ConstructorImpl constructConstructorImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $ExpressionImpl constructExpressionImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $FlowCtrlImpl constructFlowControlImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
         $ConstructImpl constructConstructImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope );
