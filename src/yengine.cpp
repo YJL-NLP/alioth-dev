@@ -1500,6 +1500,10 @@ $ConstructorImpl Yengine::constructConstructorImplementation( tokens::iterator& 
                 stack.movi(7);
             } else if( it->is(VT::COMMA) ) {
                 stack.movi(4);
+            } else if( it->is(VT::CLOSES) ) {
+                stack.redu(3,VN::CONSTRUCTOR);
+            } else if( it->is(VN::BLOCK) ) {
+                stack.redu(3,VN::CONSTRUCTOR);
             } else {
                 log(Lengine::E201,*it);
                 return nullptr;
@@ -1593,6 +1597,9 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 ret->type = ExpressionImpl::PREFIX;
                 ret->mean = *it;
                 stack.movi(2);
+            } else if( it->is(VT::OPENS) ) {
+                ret->type = ExpressionImpl::SCTOR;
+                stack.movi(13);
             } else if( it->is(VT::OPENA) ) {
                 stack.movi(3);
             } else if( it->is(VN::EXPRESSION) ) {
@@ -1753,6 +1760,19 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
             } else if( ret->target = constructElementPrototype(it,log,scope,false); !ret->target ) {
                 return nullptr;
             } break;
+        case 13:
+            if( it->is(VT::LABEL) ) {
+                ret->name = constructNameUseCase(it,log,scope,true);
+                if( !ret->name ) return nullptr;
+            } else if( it->is(VN::NAMEUC) ) {
+                stack.movi(14);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 14:
+            //[TODO]: 完成构造表达式的语法分析
+            break;
     }
 
     ret->setScope(scope);
@@ -1924,9 +1944,9 @@ $OperatorImpl Yengine::constructOperatorImplementation( tokens::iterator& it, Le
             } break;
         case 5:
             if( ret->name.is(VN::OPL_SCTOR,VN::OPL_LCTOR,VN::OPL_CCTOR,VN::OPL_MCTOR) ) {
-                stack.movi(7);
+                stack.movi(7,0);
             } else if( ret->name.is(VN::OPL_DTOR,VN::OPL_MOVE,VN::OPL_AS) ) {
-                stack.movi(6);
+                stack.movi(6,0);
             } else if( it->is(VN::PROTO) ) {
                 stack.movi(6);
             } else if( auto proto = constructElementPrototype(it,log,scope,true); proto ) {

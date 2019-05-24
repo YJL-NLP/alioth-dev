@@ -346,6 +346,54 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     return true;
 }
 
+bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
+
+    auto def = requestPrototype(($implementation)oper);
+    if( !def ) {
+        mlogrepo(oper->getDocPath())(Lengine::E2029,oper->name);
+        for( auto par : *oper ) {
+            if( par->proto->dtype->is(typeuc::UnsolvableType) )
+                mlogrepo(oper->getDocPath())(Lengine::E2040,par->proto->dtype->phrase);
+        }
+        return false;
+    }
+    auto fs = generateGlobalUniqueName(($node)oper);
+    auto ft = (FunctionType*)mnamedT[fs];
+    auto fp = mcurmod->getFunction(fs);
+    if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
+
+
+    auto ebb = BasicBlock::Create(mctx,"",fp);
+    auto builder = IRBuilder<>(ebb);
+    auto arg = fp->arg_begin();
+
+    for( auto par : *oper ) {
+        arg += 1;
+        arg->setName( (string)par->name );
+        if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
+            mlocalV[par] = arg;
+        } else {
+            auto addr = builder.CreateAlloca(arg->getType());
+            builder.CreateStore(arg,addr);
+            mlocalV[par] = addr;
+        }
+    }
+
+    flag_terminate = false;
+    // if( !performImplementationSemanticValidation( oper->body, builder ) ) return false;
+
+    // if( !flag_terminate ) {
+    //     token token = oper->body->impls.size()?
+    //         oper->body->impls[-1]->phrase:
+    //         oper->body->phrase;
+    //     mlogrepo(oper->getDocPath())(Lengine::E2056,token,oper->name);
+    //     return false;
+    // }
+
+    return true;
+
+}
+
 bool Sengine::performImplementationSemanticValidation( $implementation impl, IRBuilder<>& builder, Position pos ) {
     if( flag_terminate ){
         mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
@@ -380,21 +428,24 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
         return false;
     } 
     auto proto = requestPrototype(($implementation)impl);
+    $eproto rproto = nullptr;
+    if( auto o = ($OperatorDef)proto; o ) rproto = o->rproto;
+    else if( auto m = ($MethodDef)proto; m ) rproto = m->rproto;
     switch( impl->action ) {
         case RETURN: {
             if( impl->expr ) {
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal ); if( !v ) return false;
                 //[TODO] : generateBackendIR for <leave> method
 
-                if( auto rv = insureEquivalent(proto->rproto, v, builder, Returning ); rv ) {
+                if( auto rv = insureEquivalent(rproto, v, builder, Returning ); rv ) {
                     builder.CreateRet(rv->asobject(builder));
                     flag_terminate = true;
                 } else {
                     mlogrepo(impl->getDocPath())(Lengine::E2054,impl->expr->phrase);
                     return false;
                 }
-            } else if( !proto->rproto->dtype->is(typeuc::VoidType) ) {
-                mlogrepo(impl->getDocPath())(Lengine::E2057,impl->phrase,proto->rproto->dtype->phrase);
+            } else if( !rproto->dtype->is(typeuc::VoidType) ) {
+                mlogrepo(impl->getDocPath())(Lengine::E2057,impl->phrase,rproto->dtype->phrase);
             } else {
                 builder.CreateRetVoid();
                 flag_terminate = true;
@@ -1150,7 +1201,7 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
         domain += "." + nameProc(impl->name);
         if( impl->constraint ) suffix = "const." + suffix;
-        if( auto pro = requestPrototype(($implementation)impl);pro and pro->raw ) {
+        if( auto pro = ($MethodDef)requestPrototype(($implementation)impl);pro and pro->raw ) {
             if( pro->raw.is(VT::iSTRING) ) return Xengine::extractText(pro->raw);
             else return impl->name;
         }
@@ -1299,44 +1350,74 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
 }
 
 $ClassDef Sengine::requestThisClass( $implementation impl ) {
-    while( impl and !impl->is(METHODIMPL) ) impl = impl->getScope();
+    while( impl and !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) ) impl = impl->getScope();
     if( !impl ) return nullptr;
-    auto method = ($MethodImpl)impl;
-    if( mmethodP.count(method) ) return mmethodP[method]->getScope();
 
-    auto eve = request(method->cname, NormalClass);
-    if( eve.size() != 1 ) return nullptr;
+    if( auto method = ($MethodImpl)impl; method ) {
+        if( mmethodP.count(method) ) return mmethodP[method]->getScope();
 
-    return ($ClassDef)eve[0];
+        auto eve = request(method->cname, NormalClass);
+        if( eve.size() != 1 ) return nullptr;
+
+        return ($ClassDef)eve[0];
+    } else if( auto oper = ($OperatorImpl)impl; oper ) {
+        if( moperatorP.count(oper) ) return moperatorP[oper]->getScope();
+
+        auto eve = request(oper->cname, NormalClass);
+        if( eve.size() != 1 ) return nullptr;
+
+        return ($ClassDef)eve[0];
+    }
+
+    return nullptr;
 }
 
-$MethodDef Sengine::requestPrototype( $implementation impl ) {
-    while( impl and !impl->is(METHODIMPL) ) impl = impl->getScope();
+$definition Sengine::requestPrototype( $implementation impl ) {
+    while( impl and !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) ) impl = impl->getScope();
     if( !impl ) return nullptr;
-    auto met = ($MethodImpl)impl;
 
-    if( mmethodP.count(met) ) return mmethodP[met];
-    
-    auto scope = requestThisClass(($implementation)met);
-    if( !scope ) return nullptr;
-    auto sname = (string)met->name;
+    if( auto met = ($MethodImpl)impl; met ) {
+        if( mmethodP.count(met) ) return ($definition)mmethodP[met];
+        
+        auto scope = requestThisClass(($implementation)met);
+        if( !scope ) return nullptr;
+        auto sname = (string)met->name;
 
-    for( auto def : scope->instdefs + scope->metadefs ) if( auto mdef = ($MethodDef)def; mdef and (string)mdef->name == sname ) {
-        if( mdef->size() != met->size() ) continue;
-        auto arg = met->begin();
-        bool found = true;
-        for( auto par : *mdef ) {
-            found = checkEquivalent((*arg++)->proto, par->proto ) and found;
-            if( !found ) break;
+        for( auto def : scope->instdefs + scope->metadefs ) if( auto mdef = ($MethodDef)def; mdef and (string)mdef->name == sname ) {
+            if( mdef->size() != met->size() ) continue;
+            if( (bool)mdef->constraint xor (bool)met->constraint ) continue;
+            auto arg = met->begin();
+            bool found = true;
+            for( auto par : *mdef ) {
+                found = checkEquivalent((*arg++)->proto, par->proto ) and found;
+                if( !found ) break;
+            }
+            if( found ) return ($definition)(mmethodP[met] = mdef);
         }
-        if( found ) return mmethodP[met] = mdef;
+    } else if( auto op = ($OperatorImpl)impl; op ) {
+        if( moperatorP.count(op) ) return ($definition)moperatorP[op];
+
+        auto scope = requestThisClass(($implementation)met);
+        if( !scope ) return nullptr;
+        
+        for( auto def : scope->instdefs ) if( auto odef = ($OperatorDef)def; odef and odef->name.in == op->name.in and !odef->action ) {
+            if( odef->modifier and odef->modifier.tx != op->modifier.tx ) continue;
+            if( odef->size() != op->size() ) continue;
+            auto arg = op->begin();
+            bool found = true;
+            for( auto par : *odef ) {
+                found = checkEquivalent((*arg++)->proto, par->proto ) and found;
+                if( !found ) break;
+            }
+            if( found ) return ($definition)(moperatorP[op] = odef);
+        }
     }
 
     return nullptr;
 }
 
 Value* Sengine::requestThis( $implementation impl ) {
-    while( impl and !impl->is(METHODIMPL) ) impl = impl->getScope();
+    while( impl and !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) ) impl = impl->getScope();
     if( !impl ) return nullptr;
 
     auto fp = mcurmod->getFunction(generateGlobalUniqueName(($node)impl));

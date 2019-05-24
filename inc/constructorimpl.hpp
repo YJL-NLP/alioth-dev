@@ -21,6 +21,11 @@ namespace alioth {
 struct ConstructorImpl : public implementation {
 
     public:
+        /**
+         * @struct ConstructInfo : 构造信息
+         * @desc :
+         *  用于构成构造列表的构造信息
+         */
         struct ConstructInfo {
             nameuc name;
             $ExpressionImpl ctor;

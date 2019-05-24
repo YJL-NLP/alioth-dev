@@ -144,11 +144,19 @@ class Sengine {
         map<$MethodImpl,$MethodDef> mmethodP;
 
         /**
+         * @member moperatorP : 运算符原型表
+         * @desc :
+         *  此表用于缓冲运算符与其原型的关系
+         *  此表仅应当被特定的函数维护，不可直接访问
+         */
+        map<$OperatorImpl,$OperatorDef> moperatorP;
+
+        /**
          * @member mtcd : 类型转换图
          * @desc :
          *  用于存放所有数据类型之间的转换关系
          */
-        TypeConvertDiagram mtcd;
+        TypeConvertDiagram mtcd; //[useless right now]
 
         /**
          * @member flag_terminate : 终结标志
@@ -276,6 +284,14 @@ class Sengine {
         bool performImplementationSemanticValidation( $MethodImpl method );
 
         /**
+         * @method performImplementationSemanticValidation : 执行语义分析
+         * @desc :
+         *  分析运算符重载实体的实现语义
+         *  产生中间表示
+         */
+        bool performImplementationSemanticValidation( $OperatorImpl oper );
+
+        /**
          * @method performDefinitionSemanticValidation : 执行定义语义检查
          * @desc :
          *  为属性定义执行语义检查,属性不能为右值
@@ -348,6 +364,7 @@ class Sengine {
          * @desc :
          *  此方法使用request方法,便捷地获取实现的当前类
          *  此方法尝试使用mmethodP表提高查询速度,但绝不修改mmethodP表
+         *  此方法尝试使用moperatorP表提高查询速度，但绝不修改moperatorP表
          *  若存在任何问题,只返回空,不存储日志
          */
         $ClassDef requestThisClass( $implementation impl );
@@ -356,8 +373,9 @@ class Sengine {
          * @method requestPrototype : 请求原型
          * @desc :
          *  此方法维护和查询mmethodP表,寻找实现所在的方法的原型
+         *  [2019/05/24]此方法也用于维护moperatorP表，寻找实现所在的运算符的原型
          */
-        $MethodDef requestPrototype( $implementation met );
+        $definition requestPrototype( $implementation impl );
 
         /**
          * @method requestThis : 请求宿主

@@ -1,18 +1,22 @@
-module Op : io net string memory;
+module Op entry main : io net string memory
 
-class Op {
-    method raw "Stringe" main( argc int32, argv **int8 ) int32
+class Position {
+    obj x int32
+    obj y int32
 
-    class Sub {
-        operator default assign( ref const x this class ) ref Op::Sub
+    enum public He { 
+        et
+        zx
     }
 
+    delete default operator sctor
+    operator default assign( ref const x Position ) ref this class
 }
 
-operator Op::Sub assign( ref const x this class ) Op::Sub {
+class Op {
+    method raw main( argc int32, argv **int8 ) int32
 
 }
-
 
 method Op main( argc int32, argv **int8 ) int32 {
     return argc;

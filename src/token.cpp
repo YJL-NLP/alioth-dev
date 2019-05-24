@@ -118,43 +118,43 @@ bool token::is( CT v )const {
             return is(
                 VN::BRANCH,VN::LOOP,VN::CONTROL,VN::BLOCK,VN::EXPRESSION
             );
-        case CT::MF_ABSTRACT: return tx == "abstract";
-        case CT::MF_REV: return tx == "rev";
-        case CT::MF_ISM: return tx == "ism";
-        case CT::MF_PREFIX: return tx == "prefix";
-        case CT::MF_SUFFIX: return tx == "suffix";
-        case CT::MF_ATOMIC: return tx == "atomic";
-        case CT::MF_RAW: return tx == "raw";
-        case CT::LB_SCTOR: return tx == "sctor";
-        case CT::LB_LCTOR: return tx == "lctor";
-        case CT::LB_CCTOR: return tx == "cctor";
-        case CT::LB_MCTOR: return tx == "mctor";
-        case CT::LB_DTOR: return tx == "dtor";
-        case CT::LB_MEMBER: return tx == "member" or is(VT::MEMBER);
-        case CT::LB_WHERE: return tx == "where" or is(VT::WHERE);
-        case CT::LB_MOVE: return tx == "move";
-        case CT::LB_NEGATIVE: return tx == "negative";
-        case CT::LB_BITREV: return tx == "bitrev" or is(VT::BITREV);
-        case CT::LB_INCREASE: return tx == "increase" or is(VT::INCRESS);
-        case CT::LB_DECREASE: return tx == "decrease" or is(VT::DECRESS);
-        case CT::LB_INDEX: return tx == "index";
-        case CT::LB_ADD: return tx == "add" or is(VT::PLUS);
-        case CT::LB_SUB: return tx == "sub" or is(VT::MINUS);
-        case CT::LB_MUL: return tx == "mul" or is(VT::MUL);
-        case CT::LB_DIV: return tx == "div" or is(VT::DIV);
-        case CT::LB_MOL: return tx == "mol" or is(VT::MOL);
-        case CT::LB_BITAND: return tx == "bitand" or is(VT::BITAND);
-        case CT::LB_BITOR: return tx == "bitor" or is(VT::BITOR);
-        case CT::LB_BITXOR: return tx == "bitxor" or is(VT::BITXOR);
-        case CT::LB_SHL: return tx == "shl" or is(VT::SHL);
-        case CT::LB_SHR: return tx == "shr" or is(VT::SHR);
-        case CT::LB_LT: return tx == "lt" or is(VT::LT);
-        case CT::LB_GT: return tx == "gt" or is(VT::GT);
-        case CT::LB_LE: return tx == "le" or is(VT::LE);
-        case CT::LB_GE: return tx == "ge" or is(VT::GE);
-        case CT::LB_EQ: return tx == "eq" or is(VT::EQ);
-        case CT::LB_NE: return tx == "ne" or is(VT::NE);
-        case CT::LB_ASSIGN: return tx == "assign" or is(VT::ASSIGN);
+        case CT::MF_ABSTRACT: return in == VN::TERMINAL and tx == "abstract";
+        case CT::MF_REV: return in == VN::TERMINAL and tx == "rev";
+        case CT::MF_ISM: return in == VN::TERMINAL and tx == "ism";
+        case CT::MF_PREFIX: return in == VN::TERMINAL and tx == "prefix";
+        case CT::MF_SUFFIX: return in == VN::TERMINAL and tx == "suffix";
+        case CT::MF_ATOMIC: return in == VN::TERMINAL and tx == "atomic";
+        case CT::MF_RAW: return in == VN::TERMINAL and tx == "raw";
+        case CT::LB_SCTOR: return in == VN::TERMINAL and tx == "sctor";
+        case CT::LB_LCTOR: return in == VN::TERMINAL and tx == "lctor";
+        case CT::LB_CCTOR: return in == VN::TERMINAL and tx == "cctor";
+        case CT::LB_MCTOR: return in == VN::TERMINAL and tx == "mctor";
+        case CT::LB_DTOR: return in == VN::TERMINAL and tx == "dtor";
+        case CT::LB_MEMBER: return in == VN::TERMINAL and tx == "member" or is(VT::MEMBER);
+        case CT::LB_WHERE: return in == VN::TERMINAL and tx == "where" or is(VT::WHERE);
+        case CT::LB_MOVE: return in == VN::TERMINAL and tx == "move";
+        case CT::LB_NEGATIVE: return in == VN::TERMINAL and tx == "negative";
+        case CT::LB_BITREV: return in == VN::TERMINAL and tx == "bitrev" or is(VT::BITREV);
+        case CT::LB_INCREASE: return in == VN::TERMINAL and tx == "increase" or is(VT::INCRESS);
+        case CT::LB_DECREASE: return in == VN::TERMINAL and tx == "decrease" or is(VT::DECRESS);
+        case CT::LB_INDEX: return in == VN::TERMINAL and tx == "index";
+        case CT::LB_ADD: return in == VN::TERMINAL and tx == "add" or is(VT::PLUS);
+        case CT::LB_SUB: return in == VN::TERMINAL and tx == "sub" or is(VT::MINUS);
+        case CT::LB_MUL: return in == VN::TERMINAL and tx == "mul" or is(VT::MUL);
+        case CT::LB_DIV: return in == VN::TERMINAL and tx == "div" or is(VT::DIV);
+        case CT::LB_MOL: return in == VN::TERMINAL and tx == "mol" or is(VT::MOL);
+        case CT::LB_BITAND: return in == VN::TERMINAL and tx == "bitand" or is(VT::BITAND);
+        case CT::LB_BITOR: return in == VN::TERMINAL and tx == "bitor" or is(VT::BITOR);
+        case CT::LB_BITXOR: return in == VN::TERMINAL and tx == "bitxor" or is(VT::BITXOR);
+        case CT::LB_SHL: return in == VN::TERMINAL and tx == "shl" or is(VT::SHL);
+        case CT::LB_SHR: return in == VN::TERMINAL and tx == "shr" or is(VT::SHR);
+        case CT::LB_LT: return in == VN::TERMINAL and tx == "lt" or is(VT::LT);
+        case CT::LB_GT: return in == VN::TERMINAL and tx == "gt" or is(VT::GT);
+        case CT::LB_LE: return in == VN::TERMINAL and tx == "le" or is(VT::LE);
+        case CT::LB_GE: return in == VN::TERMINAL and tx == "ge" or is(VT::GE);
+        case CT::LB_EQ: return in == VN::TERMINAL and tx == "eq" or is(VT::EQ);
+        case CT::LB_NE: return in == VN::TERMINAL and tx == "ne" or is(VT::NE);
+        case CT::LB_ASSIGN: return in == VN::TERMINAL and tx == "assign" or is(VT::ASSIGN);
         case CT::OPL:
             return is(
                 VN::OPL_INDEX,CT::OPL_ASSIGN,
@@ -187,8 +187,8 @@ bool token::is( CT v )const {
                 VN::OPL_LT,VN::OPL_GT,VN::OPL_LE,VN::OPL_GE,VN::OPL_EQ,VN::OPL_NE,
                 VN::OPL_AND,VN::OPL_OR,VN::OPL_XOR
             );
-        case CT::PP_ON: return tx == "on";
-        case CT::PP_THEN: return tx == "then";
+        case CT::PP_ON: return in == VN::TERMINAL and tx == "on";
+        case CT::PP_THEN: return in == VN::TERMINAL and tx == "then";
         default:
             return false;
     }

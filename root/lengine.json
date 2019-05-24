@@ -630,6 +630,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "operator domain or midifier needed but '%R0' got"
+        },"2059" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "empty constructor is not allowed"
         }
     }
 }
