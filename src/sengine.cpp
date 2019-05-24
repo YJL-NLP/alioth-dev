@@ -14,7 +14,7 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
-#include "llvm/IR/GlobalVariable.h"
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
@@ -26,10 +26,10 @@
 #include <llvm/IR/Type.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdexcept>
 #include <unistd.h>
 #include <fcntl.h>
 #include <cctype>
-#include <stdexcept>
 
 namespace alioth {
 
@@ -196,8 +196,9 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
     if( opdef->rproto and !determineElementPrototype(opdef->rproto) ) fine = false;
     for( auto par : *opdef ) if( !determineElementPrototype(par->proto) ) fine = false;
      
+    if( !opdef->rproto ) opdef->rproto = eproto::MakeUp(opdef,OBJ,typeuc::GetVoidType());
     auto rtp = generateTypeUsageAsReturnValue(opdef->rproto,pts);
-    if( opdef->rproto and !rtp ) fine = false;
+    if( !rtp ) fine = false;
 
     if( opdef->name.is(CT::OPL_ASSIGN) ) {
         if( opdef->rproto->elmt != REF or opdef->rproto->dtype->sub != opdef->getScope() )
@@ -361,7 +362,7 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
     auto ft = (FunctionType*)mnamedT[fs];
     auto fp = mcurmod->getFunction(fs);
     if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
-
+    if( !oper->rproto ) oper->rproto = eproto::MakeUp( oper, OBJ, typeuc::GetVoidType() );
 
     auto ebb = BasicBlock::Create(mctx,"",fp);
     auto builder = IRBuilder<>(ebb);
@@ -380,15 +381,12 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
     }
 
     flag_terminate = false;
-    // if( !performImplementationSemanticValidation( oper->body, builder ) ) return false;
+    if( !performImplementationSemanticValidation( ($implementation)oper->body, builder ) ) return false;
 
-    // if( !flag_terminate ) {
-    //     token token = oper->body->impls.size()?
-    //         oper->body->impls[-1]->phrase:
-    //         oper->body->phrase;
-    //     mlogrepo(oper->getDocPath())(Lengine::E2056,token,oper->name);
-    //     return false;
-    // }
+    if( !flag_terminate ) {
+        mlogrepo(oper->getDocPath())(Lengine::E2056,oper->body->phrase,oper->name);
+        return false;
+    }
 
     return true;
 
@@ -406,17 +404,37 @@ bool Sengine::performImplementationSemanticValidation( $implementation impl, IRB
     else if( auto br = ($BranchImpl)impl; br ) ret = performImplementationSemanticValidation( br, builder);
     else if( auto lp = ($LoopImpl)impl; lp ) ret = performImplementationSemanticValidation( lp, builder);
     else if( auto bk = ($InsBlockImpl)impl; bk ) ret = performImplementationSemanticValidation( bk, builder );
+    else if( auto ct = ($ConstructorImpl)impl; ct ) ret = performImplementationSemanticValidation( ct, builder );
     return ret;
 }
 
-bool Sengine::performImplementationSemanticValidation( $InsBlockImpl  impl ,IRBuilder<>& builder ){
-    if( flag_terminate ){
+bool Sengine::performImplementationSemanticValidation( $InsBlockImpl  impl ,IRBuilder<>& builder ) {
+    if( flag_terminate ) {
         mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
         return false;
     } 
     bool ret = true;
 
     for( auto imp : impl->impls )
+        ret = performImplementationSemanticValidation( imp, builder ) and ret;
+
+    return ret;
+}
+
+bool Sengine::performImplementationSemanticValidation( $ConstructorImpl impl, IRBuilder<>& builder ) {
+    if( flag_terminate ) {
+        mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
+        return false;
+    }
+    bool ret = true;
+
+    //[TODO]: 按照构造顺序建立构造名录名录
+
+    //[TODO]: 按照构造名单填充构造表达式，报重复错误
+
+    //[TODO]: 执行构造
+
+    for( auto imp : impl->initiate )
         ret = performImplementationSemanticValidation( imp, builder ) and ret;
 
     return ret;
@@ -1208,9 +1226,9 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
     } else if( auto impl = ($OperatorImpl)n; impl ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
         domain += "." + nameProc(impl->name);
-        if( impl->constraint ) suffix = "const." + suffix;
-        if( impl->modifier ) suffix = (string)impl->modifier + "." + suffix;
-        if( impl->subtitle ) suffix = (string)impl->subtitle + "." + suffix;
+        if( impl->constraint ) suffix += "." + (string)impl->constraint;
+        if( impl->modifier ) suffix += "." + (string)impl->modifier;
+        if( impl->subtitle ) suffix += "." + (string)impl->subtitle;
     } else if( auto def = ($MethodDef)n; def ) {
         if( def->raw ) {
             if( def->raw.is(VT::iSTRING) ) return Xengine::extractText(def->raw);
@@ -1218,9 +1236,9 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         }
         if( def->constraint ) suffix = "const." + suffix;
     } else if( auto def = ($OperatorDef)n; def ) {
-        if( def->constraint ) suffix = "const." + suffix;
-        if( def->modifier ) suffix = (string)def->modifier + "." + suffix;
-        if( def->subtitle ) suffix = (string)def->subtitle + "." + suffix;
+        if( def->constraint ) suffix += "." + (string)def->constraint;
+        if( def->modifier ) suffix += "." + (string)def->modifier;
+        if( def->subtitle ) suffix += "." + (string)def->subtitle;
     }
 
     for( auto def = ($definition)n; def; def = def->getScope() ) domain = "." + nameProc(def->name) + domain;
@@ -1397,7 +1415,7 @@ $definition Sengine::requestPrototype( $implementation impl ) {
     } else if( auto op = ($OperatorImpl)impl; op ) {
         if( moperatorP.count(op) ) return ($definition)moperatorP[op];
 
-        auto scope = requestThisClass(($implementation)met);
+        auto scope = requestThisClass(($implementation)op);
         if( !scope ) return nullptr;
         
         for( auto def : scope->instdefs ) if( auto odef = ($OperatorDef)def; odef and odef->name.in == op->name.in and !odef->action ) {
@@ -1816,6 +1834,8 @@ Sengine::ModuleTrnsUnit Sengine::performImplementationSemanticValidation( $modes
     }
     for( auto im : mod->impls ) if( auto mim = ($MethodImpl)im; mim ) {
         fine = performImplementationSemanticValidation(mim) and fine;
+    } else if( auto oim = ($OperatorImpl)im; oim ) {
+        fine = performImplementationSemanticValidation(oim) and fine;
     }
 
     if( mod->es ) {

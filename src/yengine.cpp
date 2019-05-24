@@ -1466,6 +1466,7 @@ $InsBlockImpl Yengine::constructInstructionBlockImplementation( tokens::iterator
 $ConstructorImpl Yengine::constructConstructorImplementation( tokens::iterator& it, Lengine::logs& log, $scope scope ) {
     smachine stack = it;
     $ConstructorImpl ret = new ConstructorImpl;
+    ret->setScope(scope);
     stack.movi(1,0);
 
     while( stack.size() > 0 ) switch( (state)stack ) {

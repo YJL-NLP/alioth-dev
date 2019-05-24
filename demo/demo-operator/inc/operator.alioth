@@ -10,7 +10,9 @@ class Position {
     }
 
     delete default operator sctor
+    operator sctor( x int32, y int32 )
     operator default assign( ref const x Position ) ref this class
+    operator member z () int32
 }
 
 class Op {
@@ -20,4 +22,13 @@ class Op {
 
 method Op main( argc int32, argv **int8 ) int32 {
     return argc;
+}
+
+operator Position member z () int32 {
+    return 3;
+}
+
+operator Position sctor ( x int32, y int32 ) {
+    x: x, y: y;
+    return;
 }

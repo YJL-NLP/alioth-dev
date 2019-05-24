@@ -619,7 +619,7 @@
             "sev" : 1,
             "beg" : "e0",
             "end" : "e0",
-            "msg" : "terminator instruction for method '%R1' missing"
+            "msg" : "terminator instruction for implementation '%R1' missing"
         },"2057":{
             "sev" : 1,
             "beg" : "e0",

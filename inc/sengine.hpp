@@ -12,6 +12,7 @@
 #include "operatordef.hpp"
 #include "flowctrlimpl.hpp"
 #include "operatorimpl.hpp"
+#include "constructorimpl.hpp"
 #include "typeconvertdiagram.hpp"
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -209,7 +210,9 @@ class Sengine {
          *  在离开指令块之前,任何中间表示都应该产生"离开块"语句块,此语句块用于销毁在
          *  指令块中产生的元素
          */
-        bool performImplementationSemanticValidation( $InsBlockImpl impl ,IRBuilder<>& builder);
+        bool performImplementationSemanticValidation( $InsBlockImpl impl, IRBuilder<>& builder );
+
+        bool performImplementationSemanticValidation( $ConstructorImpl impl, IRBuilder<>& builder );
 
         /**
          * @method performImplementationSemanticValidation : 执行实现语义检查
