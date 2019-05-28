@@ -325,11 +325,12 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
         arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            mlocalV[par] = arg;
+            mlocalE[par] = imm::address(arg,par->proto);
+            mpaddingI[($implementation)method] << mlocalE[par];
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            mlocalV[par] = addr;
+            mlocalE[par] = imm::address(addr,par->proto);
         }
     }
 
@@ -372,11 +373,12 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
         arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            mlocalV[par] = arg;
+            mlocalE[par] = imm::address(arg,par->proto);
+            mpaddingI[($implementation)oper] << mlocalE[par];
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            mlocalV[par] = addr;
+            mlocalE[par] = imm::address(addr,par->proto);
         }
     }
 
@@ -510,7 +512,7 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
             auto gv = mcurmod->getOrInsertGlobal(symbolE, gt);
             ret << imm::entity( gv, ce );
         } else if( auto cm = ($ConstructImpl)e; cm ) {
-            if( mlocalV.count(cm) ) ret << imm::address( mlocalV[cm], cm->proto );
+            if( mlocalE.count(cm) ) ret << mlocalE[cm];
         } else if( auto ad = ($AttrDef)e; ad ) {
             auto sc = ($ClassDef)ad->getScope();
             auto symbolT = generateGlobalUniqueName(($node)sc,ad->meta?Meta:None);
@@ -812,7 +814,17 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
         args.insert(args.begin(),fp->h->asaddress(builder));
     }
 
-    return imm::object(builder.CreateCall(fp->asfunction(),args),fp->prototype()->rproto);  //[FIXME]object存疑
+    auto rproto = fp->prototype()->rproto;
+    if( rproto->elmt == OBJ and rproto->dtype->is(typeuc::CompositeType) ) {
+        auto rv = imm::address(builder.CreateAlloca(generateTypeUsage(rproto->dtype)),rproto);
+        mpaddingI[impl->getScope()] << rv;
+        args.insert(args.begin(),rv->asaddress(builder));
+        builder.CreateCall(fp->asfunction(),args);
+        return rv;
+    } else {
+        return imm::object(builder.CreateCall(fp->asfunction(),args),fp->prototype()->rproto);
+    }
+
 }
 
 $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
@@ -916,7 +928,7 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
             switch( impl->mean.id ) {
                 default: break;
                 case VT::BITAND: {
-                    auto proto = right->eproto();
+                    auto proto = right->eproto()->copy();
                     proto->dtype = proto->dtype->getPointerTo();
                     proto->elmt = PTR;
                     return imm::object(right->asaddress(builder),proto);
@@ -968,6 +980,12 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     $imm inm = nullptr;
     Value* inv = nullptr;
     bool fine = true;
+
+    for( auto& [cons,imm] : mlocalE ) if( cons->getScope() == impl->getScope() and (string)cons->name == (string)impl->name ) {
+        mlogrepo(impl->getDocPath())(Lengine::E2001,impl->name,cons->getDocPath(),cons->name);
+        return false;
+    }
+
     if( impl->init ) {
         inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
         if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
@@ -985,7 +1003,10 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     Value* addr = builder.CreateAlloca(tp, nullptr, (string)impl->name);
     if( inv and fine ) builder.CreateStore(inv,addr);
 
-    mlocalV[impl] = addr;
+    if( addr ) {
+        mlocalE[impl] = imm::address(addr,impl->proto);
+        mpaddingI[impl->getScope()] << mlocalE[impl];
+    }
     return addr != nullptr and fine;
 }
 
@@ -1286,7 +1307,7 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
     if( auto bimpl = ($InsBlockImpl)sc; bimpl and name.size() == 1 ) {
     /** 在执行块中搜索已经被翻译的构建语句,若没有结果则上行传递搜索 */
         for( auto im : bimpl->impls ) if( auto cimpl = ($ConstructImpl)im; cimpl ) 
-            if( (string)cimpl->name == sname and mlocalV.count(cimpl) ) res << (anything)cimpl;
+            if( (string)cimpl->name == sname and mlocalE.count(cimpl) ) res << (anything)cimpl;
         if( res.size() == 0 ) {
             if( auto scsc = sc->getScope(); !scsc ) return {};
             else return request( name, len, scsc );
@@ -1420,6 +1441,7 @@ $definition Sengine::requestPrototype( $implementation impl ) {
         
         for( auto def : scope->instdefs ) if( auto odef = ($OperatorDef)def; odef and odef->name.in == op->name.in and !odef->action ) {
             if( odef->modifier and odef->modifier.tx != op->modifier.tx ) continue;
+            if( (bool)odef->constraint xor (bool)op->constraint ) continue;
             if( odef->size() != op->size() ) continue;
             auto arg = op->begin();
             bool found = true;

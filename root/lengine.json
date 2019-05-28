@@ -481,7 +481,7 @@
             "sev" : 1,
             "beg" : "b0",
             "end" : "e0",
-            "msg" : "cannot find the corresponding definition of this implementation"
+            "msg" : "cannot find the corresponding definition of the implementation '%R0'"
         },"2030" : {
             "sev" : 1,
             "beg" : "b0",

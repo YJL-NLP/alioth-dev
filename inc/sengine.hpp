@@ -120,12 +120,19 @@ class Sengine {
         map<$modesc,ModuleTrnsUnit> mtrepo;
 
         /**
-         * @member mlocalV : 局部元素表
+         * @member mlocalE : 局部元素表
          * @desc :
          *  由构建语句产生的元素在此绑定
          *  此表可以用于判断执行流是否已经掠过构建语句
          */
-        map<$ConstructImpl,Value*> mlocalV;
+        map<$ConstructImpl,$imm> mlocalE;
+
+        /**
+         * @member mpaddingI : 挂起的立即单元
+         * @desc :
+         *  由于构造或表达式产生的需要被析构的立即单元
+         */
+        map<$implementation,imms> mpaddingI;
 
         /**
          * @member mnamedT : 命名类型符号表
