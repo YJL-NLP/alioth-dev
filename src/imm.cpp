@@ -18,6 +18,9 @@ $ClassDef imm::metacls()const{ return ($ClassDef)p; }
 $imm imm::function( Value* fp, $MethodDef prototype, agent<imm> host ) { return new imm(fun,fp,(anything)prototype,host); }
 $MethodDef imm::prototype()const{ return ($MethodDef)p; }
 
+$imm imm::member( Value* fp, $OperatorDef member, agent<imm> host ) { return new imm(mem,fp,(anything)member,host); }
+$OperatorDef imm::member()const{ return t==mem?($OperatorDef)p:nullptr; }
+
 Value* imm::raw()const { return v; }
 
 Value* imm::asobject( IRBuilder<>& builder )const {
@@ -97,7 +100,7 @@ Value* imm::asparameter( IRBuilder<>& builder, etype e )const {
 }
 
 Value* imm::asfunction()const {
-    if( t == fun ) return v;
+    if( t == fun or t == mem ) return v;
     else return nullptr;
 }
 

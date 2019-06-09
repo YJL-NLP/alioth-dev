@@ -80,7 +80,7 @@ bool Sengine::performDefinitionSemanticValidation( $modesc desc ) {
 bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
 
     bool fine = true;
-    map<string,$definition> nameT;
+    std::map<string,$definition> nameT;
 
     auto perform = [&]( auto all, auto symbol, Type*& slot ) {
         if( !slot ) slot = StructType::create(mctx,symbol);
@@ -311,12 +311,8 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
         }
         return false;
     }
-    auto fs = generateGlobalUniqueName(($node)method);
-    auto ft = (FunctionType*)mnamedT[fs];
-    auto fp = mcurmod->getFunction(fs);
-    if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
-
-
+    enterScope(($implementation)method);
+    auto fp = executableEntity( ($node)method );
     auto ebb = BasicBlock::Create(mctx,"",fp);
     auto builder = IRBuilder<>(ebb);
     auto arg = fp->arg_begin();
@@ -325,12 +321,11 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
         arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            mlocalE[par] = imm::address(arg,par->proto);
-            mpaddingI[($implementation)method] << mlocalE[par];
+            registerElement( par, imm::address(arg,par->proto) );
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            mlocalE[par] = imm::address(addr,par->proto);
+            registerElement( par, imm::address(addr,par->proto) );
         }
     }
 
@@ -359,12 +354,10 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
         }
         return false;
     }
-    auto fs = generateGlobalUniqueName(($node)oper);
-    auto ft = (FunctionType*)mnamedT[fs];
-    auto fp = mcurmod->getFunction(fs);
-    if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
+    auto fp = executableEntity( ($node)oper );
     if( !oper->rproto ) oper->rproto = eproto::MakeUp( oper, OBJ, typeuc::GetVoidType() );
 
+    enterScope( ($implementation)oper );
     auto ebb = BasicBlock::Create(mctx,"",fp);
     auto builder = IRBuilder<>(ebb);
     auto arg = fp->arg_begin();
@@ -373,12 +366,11 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
         arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            mlocalE[par] = imm::address(arg,par->proto);
-            mpaddingI[($implementation)oper] << mlocalE[par];
+            registerElement( par, imm::address(arg,par->proto) );
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            mlocalE[par] = imm::address(addr,par->proto);
+            registerElement( par, imm::address(addr,par->proto) );
         }
     }
 
@@ -512,7 +504,7 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
             auto gv = mcurmod->getOrInsertGlobal(symbolE, gt);
             ret << imm::entity( gv, ce );
         } else if( auto cm = ($ConstructImpl)e; cm ) {
-            if( mlocalE.count(cm) ) ret << mlocalE[cm];
+            if( auto inst = lookupElement(cm->name); inst ) ret << inst;
         } else if( auto ad = ($AttrDef)e; ad ) {
             auto sc = ($ClassDef)ad->getScope();
             auto symbolT = generateGlobalUniqueName(($node)sc,ad->meta?Meta:None);
@@ -571,15 +563,22 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
     for( auto d : search )
         if( (string)d->name == (string)impl->mean ) {
             if( auto ad = ($AttrDef)d; ad ) {
-                int index = 0; while( search[index] != d ) index ++;
+                int index = 0; while( search[index] != d ) index ++; //[TODO]: 考虑基类
                 auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], vhost, index );
                 ret << imm::address(gep,ad->proto,host);
-            } else if( auto md = ($MethodDef)d; md ) {
+            } else if( auto md = ($MethodDef)d; md and pos == AsProc ) {
                 auto fs = generateGlobalUniqueName(($node)md);
                 auto fp = mcurmod->getFunction(fs);
                 if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
                 ret << imm::function(fp,md,host);
             }
+        } else if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_MEMBER) and (string)od->subtitle == (string)impl->mean ) {
+            if( pos != LeftOfAssign and od->size() != 0 ) continue;
+            auto fs = generateGlobalUniqueName(($node)od);
+            auto fp = mcurmod->getFunction(fs);
+            if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
+            auto fp = executableEntity(($node)od);
+            ret << imm::member(fp,od,host);
         }
 
     if( ret.size() == 0 ) mlogrepo(impl->getDocPath())(Lengine::E2004,impl->mean);
@@ -591,8 +590,11 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
     Value* rv;
     $eproto proto;
 
-    auto left = performImplementationSemanticValidation(impl->sub[0],builder, LeftOfAssign);
+    //[QUESTION]: 连等于算法的语法分析是否将运算符正确归约了
     auto right = performImplementationSemanticValidation(impl->sub[1],builder, AsOperand);
+    auto left = impl->mean.is(VT::ASSIGN)?
+        performImplementationSemanticValidation(impl->sub[0],builder, LeftOfAssign ):
+        performImplementationSemanticValidation(impl->sub[0],builder, AsOperand );
     if( !left or !right ) return nullptr;
 
     if( !left->asaddress(builder) ) {
@@ -817,7 +819,7 @@ $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
     auto rproto = fp->prototype()->rproto;
     if( rproto->elmt == OBJ and rproto->dtype->is(typeuc::CompositeType) ) {
         auto rv = imm::address(builder.CreateAlloca(generateTypeUsage(rproto->dtype)),rproto);
-        mpaddingI[impl->getScope()] << rv;
+        registerInstance( rv );
         args.insert(args.begin(),rv->asaddress(builder));
         builder.CreateCall(fp->asfunction(),args);
         return rv;
@@ -981,11 +983,6 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     Value* inv = nullptr;
     bool fine = true;
 
-    for( auto& [cons,imm] : mlocalE ) if( cons->getScope() == impl->getScope() and (string)cons->name == (string)impl->name ) {
-        mlogrepo(impl->getDocPath())(Lengine::E2001,impl->name,cons->getDocPath(),cons->name);
-        return false;
-    }
-
     if( impl->init ) {
         inm = performImplementationSemanticValidation( impl->init, builder, AsInit );
         if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
@@ -1003,10 +1000,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     Value* addr = builder.CreateAlloca(tp, nullptr, (string)impl->name);
     if( inv and fine ) builder.CreateStore(inv,addr);
 
-    if( addr ) {
-        mlocalE[impl] = imm::address(addr,impl->proto);
-        mpaddingI[impl->getScope()] << mlocalE[impl];
-    }
+    if( addr ) registerElement( impl, imm::address(addr,impl->proto) );
     return addr != nullptr and fine;
 }
 
@@ -1279,6 +1273,16 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
     return prefix + domain + suffix;
 }
 
+Function* Sengine::executableEntity( $node impl ) {
+    if( !impl ) return nullptr;
+    auto fs = generateGlobalUniqueName(impl);
+    if( mnamedT.count(fs) != 1 ) return nullptr;
+    auto ft = (FunctionType*)mnamedT[fs];
+    auto fp = mcurmod->getFunction(fs);
+    if( !fp ) fp = Function::Create(ft,GlobalValue::ExternalLinkage,fs,mcurmod.get());
+    return fp;
+}
+
 everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
 
     if( !sc ) sc = name.getScope();
@@ -1303,27 +1307,17 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
         }
         return res;
     };
-    
-    if( auto bimpl = ($InsBlockImpl)sc; bimpl and name.size() == 1 ) {
-    /** 在执行块中搜索已经被翻译的构建语句,若没有结果则上行传递搜索 */
-        for( auto im : bimpl->impls ) if( auto cimpl = ($ConstructImpl)im; cimpl ) 
-            if( (string)cimpl->name == sname and mlocalE.count(cimpl) ) res << (anything)cimpl;
+
+    if( auto impl = ($implementation)sc; impl and name.size() == 1 ) {
+    //// 在实现中
+        auto inst = lookupElement( impl, sname );
+        if( inst ) res << (anything)inst;
         if( res.size() == 0 ) {
-            if( auto scsc = sc->getScope(); !scsc ) return {};
-            else return request( name, len, scsc );
-        }
-    } else if( auto mimpl = ($MethodImpl)sc; mimpl and name.size() == 1 ) {
-    /** 在方法实现中搜索参数,若没有结果,加ThisClass滤镜上行传递搜索 */
-        for( auto im : *mimpl ) if( (string)im->name == sname )
-            res << (anything)im;
-        if( res.size() == 0 ) {
-            if( auto org = requestThisClass(($implementation)mimpl); !org ) return {};
+            if( auto org = requestThisClass(impl); !org ) return {};
             else return request( name, ThisClass, org );
         }
     } else if( auto mdef = ($module)sc; mdef ) {
-    /**
-     * 在模块层
-     */
+    //// 在模块层
         if( sname == mdef->desc->name ) {
             if( name.size() == 1 ) res << (anything)mdef;
             else return lookupInternal( name%1, mdef );
@@ -1735,6 +1729,103 @@ bool Sengine::tcd_add_edge( $typeuc dst, $typeuc src, ConvertAction ca ) {
     mtcd.in[ndst] << path;
     mtcd.out[nsrc] << path;
     return true;
+}
+
+bool Sengine::enterScope( $implementation impl ) {
+    if( !impl ) return false;
+    if( !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) 
+        and !impl->is(BLOCKIMPL) and !impl->is(BRANCHIMPL) and !impl->is(LOOPIMPL) ) {
+            return false; }
+    
+    if( impl->is(METHODIMPL) or impl->is(OPERATORIMPL) ) mstackS.clear();
+    else if( mstackS.size() == 0 ) return false;    //其他语法结构需要有方法或运算符作为根
+
+    mstackS.insert((StackSection){title:impl},0);
+
+    return true;
+}
+
+bool Sengine::leaveScope( IRBuilder<>& builder, $implementation impl ) {
+    // [TODO]
+    if( mstackS.size() == 0 ) return false;
+    if( !impl ) impl = mstackS[0].title;
+
+    bool found = false;
+    for( auto& seg : mstackS ) if( seg.title == impl ) { found = true; break;}
+    if( !found ) return false;
+
+    for( auto& seg : mstackS ) {
+        for( auto& inst : seg.instances ) {
+            auto proto = inst->eproto();
+            if( proto->elmt == OBJ and proto->dtype->is(typeuc::CompositeType) ) {
+                auto op = selectOperator(inst);
+                auto opfun = executableEntity(($node)op);
+                if( opfun ) builder.CreateCall( opfun, {inst->asaddress(builder)} );
+                else found = false;
+            }
+        }
+        if( seg.title == impl ) break;
+    }
+    
+    return found;
+}
+
+bool Sengine::registerElement( $ConstructImpl ctis, $imm inst ) {
+    if( !ctis or !inst ) return false;
+    if( mstackS.size() < 1 ) return false;
+    auto& scope = mstackS[0];
+
+    for( auto& [is,in] : scope.elements ) if( (string)ctis->name == (string)is->name ) {
+        auto path = scope.title->getDocPath();
+        mlogrepo(path)(Lengine::E2001,ctis->name,path,is->name);
+        return false;
+    }
+
+    scope.elements[ctis] = inst;
+    registerInstance(inst);
+    return true;
+}
+
+bool Sengine::registerInstance( $imm inst ) {
+    if( !inst ) return false;
+    if( mstackS.size() < 1 ) return false;
+    mstackS[0].instances << inst;
+    return true;
+}
+
+$imm Sengine::lookupElement( const token& name, $implementation sc ) {
+    if( mstackS.size() < 1 ) return nullptr;
+    if( !sc ) sc = mstackS[0].title;
+    while( sc and !sc->is(METHODIMPL) and !sc->is(OPERATORIMPL) 
+        and !sc->is(BLOCKIMPL) and !sc->is(BRANCHIMPL) and !sc->is(LOOPIMPL) ) {
+            sc = sc->getScope(); }
+    if( !sc ) return nullptr;
+    bool begin = false;
+
+    for( auto& sec : mstackS ) {
+        if( sec.title == sc ) {begin = true;}
+        if( !begin ) continue;
+        for( auto& [nm,inst] : sec.elements )
+            if( (string)nm->name == (string)name ) return inst;
+    }
+    return nullptr;
+}
+$ConstructImpl Sengine::lookupElement( $implementation sc, const token& name ) {
+    if( mstackS.size() < 1 ) return nullptr;
+    if( !sc ) sc = mstackS[0].title;
+    while( sc and !sc->is(METHODIMPL) and !sc->is(OPERATORIMPL) 
+        and !sc->is(BLOCKIMPL) and !sc->is(BRANCHIMPL) and !sc->is(LOOPIMPL) ) {
+            sc = sc->getScope(); }
+    if( !sc ) return nullptr;
+    bool begin = false;
+
+    for( auto& sec : mstackS ) {
+        if( sec.title == sc ) {begin = true;}
+        if( !begin ) continue;
+        for( auto& [nm,inst] : sec.elements )
+            if( (string)nm->name == (string)name ) return nm;
+    }
+    return nullptr;
 }
 
 Sengine::Sengine() {

@@ -381,7 +381,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
 
     vector<string> args;
     char cmd[128];
-    if( type != SYNTAXCHECK ) {
+    if( type != SYNTAXCHECK and appname.size() ) {
         if( bentry ) {
             args.push_back("ld");
             args.push_back("-o");
@@ -417,7 +417,7 @@ bool Manager::Build( const BuildType type, Lengine::logr& log ) {//测试内容
     }
 
     log += msengine.getLog();
-    if( type != SYNTAXCHECK and bfine and descs.size() and fork() == 0 ) {
+    if( type != SYNTAXCHECK and appname.size() and bfine and descs.size() and fork() == 0 ) {
         vector<const char*> sargs;
         for( auto& arg : args ) sargs.push_back(arg.c_str()); sargs.push_back(nullptr);
         execv( cmd, (char*const*)&sargs[0] );

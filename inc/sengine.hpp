@@ -5,6 +5,7 @@
 #include "modesc.hpp"
 #include "module.hpp"
 #include "attrdef.hpp"
+#include "scopestack.hpp"
 #include "loopimpl.hpp"
 #include "methoddef.hpp"
 #include "methodimpl.hpp"
@@ -110,29 +111,14 @@ class Sengine {
          * @desc :
          *  所有需要进行语义分析的模块
          */
-        map<$modesc,$module> mrepo;
+        std::map<$modesc,$module> mrepo;
 
         /**
          * @member mtrepo : 翻译单元仓库
          * @desc :
          *  翻译单元仓库保存所有产生的翻译单元
          */
-        map<$modesc,ModuleTrnsUnit> mtrepo;
-
-        /**
-         * @member mlocalE : 局部元素表
-         * @desc :
-         *  由构建语句产生的元素在此绑定
-         *  此表可以用于判断执行流是否已经掠过构建语句
-         */
-        map<$ConstructImpl,$imm> mlocalE;
-
-        /**
-         * @member mpaddingI : 挂起的立即单元
-         * @desc :
-         *  由于构造或表达式产生的需要被析构的立即单元
-         */
-        map<$implementation,imms> mpaddingI;
+        std::map<$modesc,ModuleTrnsUnit> mtrepo;
 
         /**
          * @member mnamedT : 命名类型符号表
@@ -141,7 +127,7 @@ class Sengine {
          *  任何情况下都可以为此表填充新的元素
          *  若此表中元素已经存在,不能创建新的类型
          */
-        map<string,Type*> mnamedT;
+        std::map<string,Type*> mnamedT;
 
         /**
          * @member mmethodP : 方法原型表
@@ -149,7 +135,7 @@ class Sengine {
          *  此表用于缓冲方法与其原型的关系
          *  此表仅应当被特定的函数维护,不可直接访问
          */
-        map<$MethodImpl,$MethodDef> mmethodP;
+        std::map<$MethodImpl,$MethodDef> mmethodP;
 
         /**
          * @member moperatorP : 运算符原型表
@@ -157,14 +143,7 @@ class Sengine {
          *  此表用于缓冲运算符与其原型的关系
          *  此表仅应当被特定的函数维护，不可直接访问
          */
-        map<$OperatorImpl,$OperatorDef> moperatorP;
-
-        /**
-         * @member mtcd : 类型转换图
-         * @desc :
-         *  用于存放所有数据类型之间的转换关系
-         */
-        TypeConvertDiagram mtcd; //[useless right now]
+        std::map<$OperatorImpl,$OperatorDef> moperatorP;
 
         /**
          * @member flag_terminate : 终结标志
@@ -219,6 +198,14 @@ class Sengine {
          */
         bool performImplementationSemanticValidation( $InsBlockImpl impl, IRBuilder<>& builder );
 
+        /**
+         * @method performImplementationSemanticValidation : 执行实现语义分析
+         * @desc :
+         *  首先产生构造语句序列
+         *  使用构造列表中的提名替换构造语句序列
+         *  执行构造序列
+         *  执行构造体
+         */
         bool performImplementationSemanticValidation( $ConstructorImpl impl, IRBuilder<>& builder );
 
         /**
@@ -351,6 +338,36 @@ class Sengine {
         string generateGlobalUniqueName( $node, Decorate = None );
 
         /**
+         * @method executableEntity : 获取可执行实体
+         * @desc :
+         *  为方法或运算符获取可执行的实体
+         *  此功能在实现语义分析阶段使用，用于为OperatorDef,OperatorImpl,MethodImpl,MethodDef获取Function
+         *  必须确保命名的类型列表中已经有这个类型的定义了
+         */
+        Function* executableEntity( $node );
+
+        /**
+         * @method selectOperator : 选择运算符
+         * @desc :
+         *  为带有复合数据类型运算子的运算式选择运算符。
+         *  若选择一个不存在或被删除的运算符，则报告错误，并返回无效的运算符。
+         *  
+         *  @form<1> : 选择中缀运算符，从左向右选择主运算子。
+         *      返回值以host,op,slave顺序排列
+         *  @form<2> : 选择前缀运算符
+         *  @form<3> : 选择后缀运算符
+         *  @form<4> : 选择带有副标题的特化运算符
+         *  @form<5> : 选择构造运算符
+         *  @form<6> : 选择析构运算符
+         */
+        tuple<$imm,$OperatorDef,$imm> selectOperator( $imm left, token $op, $imm right );
+        $OperatorDef selectOperator( token $op, $imm right );
+        $OperatorDef selectOperator( $imm left, token $op );
+        $OperatorDef selectOperator( $imm host, token op, token sub, $imm slave = nullptr );
+        $OperatorDef selectOperator( token op, imms od );
+        $OperatorDef selectOperator( $imm host );
+
+        /**
          * @method request : 请求语法结构
          * @desc :
          *  从语法树向上请求语法结构,此方法可以用于检查引用可达性,也可以用于获取目标语法结构
@@ -450,19 +467,13 @@ class Sengine {
         $eproto determineElementPrototype( $eproto );
         $imm doConvert( $typeuc dst, $imm src, IRBuilder<>& builder );
 
+    protected:
         /**
-         * @method checkCompatibility : 检查数据类型兼容性
+         * @member mtcd : 类型转换图
          * @desc :
-         *  在给定条件下,判断两种数据类型是否相互兼容,返回一条转换路径单链表
-         *  若中途出现其他错误,则返回空
-         * @param dst : 目标数据类型
-         * @param src : 源数据类型
-         * @param s : 情况
-         * @return $tcp : 若检测失败,则返回空,否则返回路径链表头代理
-         *  注意区分[不可转换]与[检测失败]两种情况的不同.
+         *  用于存放所有数据类型之间的转换关系
          */
-        // $tcp checkCompatibility( $typeuc dst, $typeuc src, Situation s );
-        // $tcp checkCompatibility( $eproto dst, $eproto src, Situation s );
+        TypeConvertDiagram mtcd; //[useless right now]
 
         /**
          * @method tcd_get_node : 获取类型转换图上的节点
@@ -483,6 +494,73 @@ class Sengine {
          *  若数据类型无效，则返回失败
          */
         bool tcd_add_edge( $typeuc dst, $typeuc src, ConvertAction ca );
+
+    protected:
+        /**
+         * @member mstack : 作用域栈
+         * @desc :
+         *  作用域栈中的每个段都是一个作用域
+         *  存储了其中的作用域实现信息，栈元素和栈对象信息
+         */
+        ScopeStack mstackS;
+
+        /**
+         * @method leaveScope : 离开一个作用域
+         * @desc :
+         * 此方法用于在离开一个作用域时产生离开所使用的代码
+         * @param builder : 用于产生代码的代码生成器
+         * @param impl : 要离开的作用域
+         *  作用域不存在则失败
+         *  作用域对应的所有层中的对象都会被析构
+         *  不为作用域产生return
+         *  若impl为空，则仅离开当前作用域
+         * @return bool : 执行是否正常
+         */
+        bool leaveScope( IRBuilder<>& builder, $implementation impl = nullptr );
+
+        /**
+         * @method enter Scope: 进入一个作用域
+         * @desc :
+         *  进入一个作用域
+         * @param impl : 要进入的作用域
+         *  若impl为空失败
+         *  若impl不是一个作用域{BLOCK,BRANCK,LOOP,METHOD,OPERATOR}则失败
+         *  若impl是METHOD或OPERATOR则清空栈
+         * @return bool : 操作是否成功
+         */
+        bool enterScope( $implementation impl );
+
+        /**
+         * @method registerElement : 登记一个元素
+         * @desc :
+         *  在当前作用域登记一个元素
+         * @param ctis : 构造指令
+         * @param inst : 元素实例
+         * @return bool : 返回动作是否成功
+         *  若元素重名，则报告错误，返回失败
+         *  若元素名为空，或inst为空，返回失败，不报告错误
+         */
+        bool registerElement( $ConstructImpl ctis, $imm inst );
+
+        /**
+         * @method registerInstance : 登记一个实例
+         * @desc :
+         *  原则上只有需要析构并且拥有析构运算符的对象才能被登记
+         *  但是登记一个不需要析构的实例并不会引起任何错误
+         */
+        bool registerInstance( $imm inst );
+
+        /**
+         * @method loopupElement : 查找一个元素
+         * @desc :
+         *  从sc作用域逐层向上搜索元素
+         * @param sc : 指定开始搜索的作用域
+         *  若sc指向implementation但不是作用域，此方法会先尝试向上修正一次
+         *  若sc为空，则从最底层当前作用域开始搜索
+         *  若sc不指向作用域栈中的实例，则搜索失败
+         */
+        $imm lookupElement( const token& name, $implementation sc = nullptr );
+        $ConstructImpl lookupElement( $implementation sc, const token& name );
 
     public:
 

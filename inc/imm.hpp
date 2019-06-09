@@ -3,6 +3,7 @@
 
 #include <llvm/IR/Value.h>
 #include <llvm/IR/IRBuilder.h>
+#include "operatordef.hpp"
 #include "methoddef.hpp"
 #include "eproto.hpp"
 
@@ -29,6 +30,7 @@ struct imm : thing {
             adr, // v 是元素,对于VAR和PTR存储了对象的地址Obj*, 对于REF和VAL存储了对象的指针的地址Obj**
             val, // v 是对象,对于VAR和PTR存储了对象本身Obj, 对于REF和VAL存储了对象的指针Obj*
             fun, // v 是函数
+            mem, // v 是成员运算符
         };
 
     private:
@@ -82,9 +84,11 @@ struct imm : thing {
         static $imm entity( Value* addr, $ClassDef def );
         $ClassDef metacls()const;
         
-        
         static $imm function( Value* fp, $MethodDef prototype, agent<imm> host = nullptr );
         $MethodDef prototype()const;
+
+        static $imm member( Value* fp, $OperatorDef member, agent<imm> host = nullptr );
+        $OperatorDef member()const;
 
         Value* raw()const;
         
