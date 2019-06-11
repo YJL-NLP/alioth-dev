@@ -1283,6 +1283,86 @@ Function* Sengine::executableEntity( $node impl ) {
     return fp;
 }
 
+tuple<$imm,$OperatorDef,$imm> Sengine::selectOperator( $imm left, token op, $imm right ) {
+    if( !left or !right ) return {nullptr,nullptr,nullptr};
+    if( !op.is(VN::OPL_ADD,VN::OPL_SUB,VN::OPL_MUL,VN::OPL_DIV,VN::OPL_MOL,
+        VN::OPL_BITAND,VN::OPL_BITOR,VN::OPL_BITXOR,VN::OPL_SHL,VN::OPL_SHR,
+        VN::OPL_EQ,VN::OPL_NE,VN::OPL_GT,VN::OPL_LT,VN::OPL_GE,VN::OPL_LE,
+        VN::OPL_AND,VN::OPL_OR,VN::OPL_XOR,
+        VN::OPL_ASSIGN,
+        VN::OPL_ASSIGN_ADD,VN::OPL_ASSIGN_SUB,VN::OPL_ASSIGN_MUL,VN::OPL_ASSIGN_DIV,VN::OPL_ASSIGN_MOL,
+        VN::OPL_ASSIGN_BITAND,VN::OPL_ASSIGN_BITOR,VN::OPL_ASSIGN_BITXOR,VN::OPL_ASSIGN_SHL,VN::OPL_ASSIGN_SHR))
+            return {nullptr,nullptr,nullptr};
+
+    auto lp = left->eproto(), rp = right->eproto();
+    if( !lp or !rp ) return {nullptr,nullptr,nullptr};
+    if( !lp->dtype->is(typeuc::CompositeType) and !rp->dtype->is(typeuc::CompositeType) ) return {nullptr,nullptr,nullptr};
+
+    if( auto lc = ($ClassDef)lp->dtype->sub; lc ) {
+        for( auto d : lc->instdefs ) if( auto od = ($OperatorDef)d; od and od->name.in == op.in ) {
+            // [TODO]: 考虑const
+            if( !insureEquivalent((*od->begin())->proto, right, Situation::Passing ) ) continue;
+            return {left,od,right};
+        }
+    }
+
+    if( auto rc = ($ClassDef)rp->dtype->sub; rc ) {
+        for( auto d : rc->instdefs ) if( auto od = ($OperatorDef)d; od and od->name.in == op.in and od->modifier.is(CT::MF_REV) ) {
+            // [TODO]: 考虑const
+            if( !insureEquivalent((*od->begin())->proto, left, Situation::Passing ) ) continue;
+            return {right,od,left};
+        }
+    }
+
+    return {nullptr,nullptr,nullptr};
+}
+
+$OperatorDef Sengine::selectOperator( token op, $imm right ) {
+    if( !right ) return nullptr;
+    if( !op.is(VN::OPL_INCREASE,VN::OPL_DECREASE,VN::OPL_SUB,VN::OPL_BITREV) ) return nullptr;
+    auto proto = right->eproto();
+    if( !proto or !proto->dtype->is(typeuc::CompositeType) ) return nullptr;
+
+    if( auto cd = ($ClassDef)proto->dtype->sub; cd ) 
+        for( auto d : cd->instdefs ) 
+            if( auto od = ($OperatorDef)d; od and od->modifier.is(CT::MF_PREFIX) and od->name.in == op.in ) {
+                return od;
+            }
+    
+    return nullptr;
+}
+
+$OperatorDef Sengine::selectOperator( $imm left, token op ) {
+    if( !left ) return nullptr;
+    if( !op.is(VN::OPL_INCREASE,VN::OPL_DECREASE,VN::OPL_INDEX) ) return nullptr;
+    auto proto = left->eproto();
+    if( !proto or !proto->dtype->is(typeuc::CompositeType) ) return nullptr;
+
+    if( auto cd = ($ClassDef)proto->dtype->sub; cd ) 
+        for( auto d : cd->instdefs ) 
+            if( auto od = ($OperatorDef)d; od and ( op.is(VN::OPL_INDEX) or od->modifier.is(CT::MF_SUFFIX) ) and od->name.in == op.in ) {
+                return od;
+            }
+    
+    return nullptr;
+}
+
+$OperatorDef Sengine::selectOperator( $imm host, token op, token sub, $imm slave ) {
+
+}
+
+$OperatorDef Sengine::selectOperator( $typeuc type, token op, imms od ) {
+
+}
+
+$OperatorDef Sengine::selectOperator( $imm host ) {
+
+}
+
+$OperatorDef Sengine::selectOperator( $imm master, $typeuc type ) {
+
+}
+
 everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
 
     if( !sc ) sc = name.getScope();

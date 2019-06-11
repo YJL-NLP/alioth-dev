@@ -353,19 +353,29 @@ class Sengine {
          *  若选择一个不存在或被删除的运算符，则报告错误，并返回无效的运算符。
          *  
          *  @form<1> : 选择中缀运算符，从左向右选择主运算子。
-         *      返回值以host,op,slave顺序排列
+         *      返回值以master,op,slave顺序排列
+         *      + - * / % 
+         *      & | ^ << >>
+         *      == != > < >= <=
+         *      and or xor
+         *      = += -= *= /= %= &= |= ^= <<= >>=
          *  @form<2> : 选择前缀运算符
+         *      - ++ -- ~
          *  @form<3> : 选择后缀运算符
+         *      ++ -- []
          *  @form<4> : 选择带有副标题的特化运算符
+         *      . #
          *  @form<5> : 选择构造运算符
          *  @form<6> : 选择析构运算符
+         *  @form<7> : 选择类型转换运算符
          */
-        tuple<$imm,$OperatorDef,$imm> selectOperator( $imm left, token $op, $imm right );
-        $OperatorDef selectOperator( token $op, $imm right );
-        $OperatorDef selectOperator( $imm left, token $op );
-        $OperatorDef selectOperator( $imm host, token op, token sub, $imm slave = nullptr );
-        $OperatorDef selectOperator( token op, imms od );
-        $OperatorDef selectOperator( $imm host );
+        tuple<$imm,$OperatorDef,$imm> selectOperator( $imm left, token op, $imm right );
+        $OperatorDef selectOperator( token op, $imm right );
+        $OperatorDef selectOperator( $imm master, token op );
+        $OperatorDef selectOperator( $imm master, token op, token sub, $imm slave = nullptr );
+        $OperatorDef selectOperator( $typeuc type, token op, imms od );
+        $OperatorDef selectOperator( $imm master );
+        $OperatorDef selectOperator( $imm master, $typeuc type );
 
         /**
          * @method request : 请求语法结构

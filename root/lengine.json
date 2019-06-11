@@ -635,6 +635,11 @@
             "beg" : "b0",
             "end" : "e0",
             "msg" : "empty constructor is not allowed"
+        },"2060" : {
+            "sev" : 1,
+            "beg" : "b0",
+            "end" : "e0",
+            "msg" : "no matching oerride of operator '%R0' for type '%B1'"
         }
     }
 }
