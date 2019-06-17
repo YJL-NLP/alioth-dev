@@ -1601,6 +1601,9 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
             } else if( it->is(VT::OPENS) ) {
                 ret->type = ExpressionImpl::SCTOR;
                 stack.movi(13);
+            } else if( it->is(VT::OPENL) ) {
+                ret->type = ExpressionImpl::LCTOR;
+                stack.movi(18);
             } else if( it->is(VT::OPENA) ) {
                 stack.movi(3);
             } else if( it->is(VN::EXPRESSION) ) {
@@ -1816,6 +1819,43 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 stack.redu(2,VN::EXPRESSION);
             } else if( auto arg = constructExpressionImplementation(it,log,scope); arg ) {
                 ret->sub[-1]->sub << arg;
+            } else {
+                return nullptr;
+            } break;
+        case 18:
+            if( it->is(VT::CLASS) ) {
+                stack.movi(19);
+            } else {
+                stack.movi(20,0);
+            } break;
+        case 19:
+            if( it->is(VT::LABEL) ) {
+                ret->name = constructNameUseCase(it,log,scope,true);
+                if( !ret->name ) return nullptr;
+            } else if( it->is(VN::NAMEUC) ) {
+                stack.movi(20);
+                if( !it->is(VT::BITOR,VT::CLOSEL) ) {
+                    log(Lengine::E201,*it);
+                    return nullptr;
+                }
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 20:
+            if( it->is(VT::CLOSEL) ) {
+                stack.redu(3,VN::EXPRESSION);
+            } else if( it->is(VT::BITOR,VT::COMMA) ) {
+                stack.movi(21);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 21:
+            if( it->is(VN::EXPRESSION) ) {
+                stack.redu(1,VN::EXPRESSION);
+            } else if( auto arg = constructExpressionImplementation(it,log,scope); arg ) {
+                ret->sub << arg;
             } else {
                 return nullptr;
             } break;
