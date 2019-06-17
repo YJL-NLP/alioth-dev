@@ -25,6 +25,15 @@ struct AttrDef : public definition {
          */
         $eproto proto;
 
+        /**
+         * @member offset : 偏移量
+         * @desc :
+         *  考虑基类，分离元定义和实例定义后，属性的偏移量
+         *  单位是属性，即此属性所属布局中，先于此属性出现的属性的个数
+         *  此值由语义分析引擎负责填写。-1表示无效，尚未填写。
+         */
+        int offset = -1;
+
     public:
 
         bool is( cnode ) const override;

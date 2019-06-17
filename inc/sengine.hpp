@@ -33,16 +33,16 @@ using namespace llvm;
  * [THOUGHT] 2019/03/30 : 由于没有friend关键字,设想设计如下语法特性,类C的实例对类C::D的实例的任何成员都有无限制的访问权限
  *  这样才使得在类中定义类的语法特性更有价值
  * 
- * [PLAN:DONE 2019/03/31] : 给类属性添加书写顺序索引,如此便可以不依照书写顺序阻止属性,而是依照其逻辑层次,将元属性归为一个整体
+ * [PLAN:DONE 2019/03/31] : 给类属性添加书写顺序索引,如此便可以不依照书写顺序组织属性,而是依照其逻辑层次,将元属性归为一个整体
+ * 
+ * [DESIGN]: 2019/06/16 : 在类的继承关系中，只要直系继承中没有名称重复，就不算语义错误，若不同基类中的名称产生了冲突，应当进行类型转换之后访问成员
+ *      否则认为是操作有误而不是定义有误
  */
 class Sengine {
 
     private:
         /** 产生符号时,可选的后缀 */
         enum Decorate { None, Meta, Entity };
-
-        /** 搜索语法树时,决定搜索滤镜 */
-        enum Len{ ThisClass, SuperClass, NormalClass };
 
         /** 检查数据类型兼容性时,判断场景 */
         enum Situation{ Passing, Calculating, Returning, Assigning, Constructing };
@@ -130,22 +130,6 @@ class Sengine {
         std::map<string,Type*> mnamedT;
 
         /**
-         * @member mmethodP : 方法原型表
-         * @desc :
-         *  此表用于缓冲方法与其原型的关系
-         *  此表仅应当被特定的函数维护,不可直接访问
-         */
-        std::map<$MethodImpl,$MethodDef> mmethodP;
-
-        /**
-         * @member moperatorP : 运算符原型表
-         * @desc :
-         *  此表用于缓冲运算符与其原型的关系
-         *  此表仅应当被特定的函数维护，不可直接访问
-         */
-        std::map<$OperatorImpl,$OperatorDef> moperatorP;
-
-        /**
          * @member flag_terminate : 终结标志
          * @desc :
          *  当分析了流控制语句,设置终结标志
@@ -231,7 +215,6 @@ class Sengine {
         $imm processCallExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCalcExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processConvertExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
-
         
         /**
          * @method performImplementationSemanticValidation : 执行语义检查
@@ -327,8 +310,10 @@ class Sengine {
          * @method generateTypeUsage : 产生数据类型
          * @desc :
          *  若目标不可达,则报告错误,日志被写入日志仓库
+         * @param type : 类型用例
+         * @param meta : 产生复合数据类型时被使用，用于指示是否为类的实体产生类型
          */
-        Type* generateTypeUsage( $typeuc type );
+        Type* generateTypeUsage( $typeuc type, bool meta = false );
 
         /**
          * @method generateGlobalUniqueName : 产生全局唯一名称
@@ -365,17 +350,43 @@ class Sengine {
          *      ++ -- []
          *  @form<4> : 选择带有副标题的特化运算符
          *      . #
-         *  @form<5> : 选择构造运算符
-         *  @form<6> : 选择析构运算符
-         *  @form<7> : 选择类型转换运算符
+         *  @form<5> : 选择结构化构造运算符
+         *  @form<6> : 选择拷贝或移动构造运算符
+         *  @form<7> : 选择序列化构造运算符
+         *  @form<8> : 选择析构运算符
+         *  @form<9> : 选择类型转换运算符
          */
         tuple<$imm,$OperatorDef,$imm> selectOperator( $imm left, token op, $imm right );
         $OperatorDef selectOperator( token op, $imm right );
         $OperatorDef selectOperator( $imm master, token op );
         $OperatorDef selectOperator( $imm master, token op, token sub, $imm slave = nullptr );
-        $OperatorDef selectOperator( $typeuc type, token op, imms od );
+        $OperatorDef selectOperator( $typeuc type, bundles od );
+        $OperatorDef selectOperator( $typeuc type, $imm od );
+        $OperatorDef selectOperator( $typeuc type, imms od );
         $OperatorDef selectOperator( $imm master );
         $OperatorDef selectOperator( $imm master, $typeuc type );
+
+        /**
+         * @method generateDefaultSctor : 产生默认结构化构造运算符
+         * @desc :
+         *  为类定义产生默认的构造运算符，并为之生成方法入口
+         *  但是这个运算符并没有方法实例，而是直接产生了llvmIR
+         * 
+         *  默认构造运算符的生产规则如下：
+         *      * 为所有的基类按照继承顺序调用默认构造运算符
+         *      * 若基类没有默认构造运算符
+         *      * * 且基类拥有其他结构化构造运算符,报错并返回空
+         *      * * 且基类没有其他结构化构造运算符，则递归产生默认结构化构造运算符
+         *      * 为所有的成员，按照定义顺序，调用构造运算符
+         *      * * 对于简单数据类型，用零填充
+         *      * * 对于复合数据类型，尝试调用默认构造运算符，方法同调用基类默认构造运算符一样
+         * @param cls : 要产生构造运算符的类定义
+         * @return $OperatorDef : 产生的构造运算符的定义
+         */
+        $OperatorDef generateDefaultSctor( $ClassDef cls );
+
+        /** 搜索语法树时,决定搜索滤镜 */
+        enum Len{ ThisClass, SuperClass, NormalClass };
 
         /**
          * @method request : 请求语法结构
@@ -395,6 +406,7 @@ class Sengine {
          * @return everything : 返回若干语法结构
          */
         everything request( const nameuc& name, Len len, $scope sc = nullptr );
+        $ClassDef requestClass( const nameuc& name, Len len, $scope sc = nullptr );
 
         /**
          * @method requestThisClass : 请求当前类
@@ -405,6 +417,23 @@ class Sengine {
          *  若存在任何问题,只返回空,不存储日志
          */
         $ClassDef requestThisClass( $implementation impl );
+
+    protected:
+        /**
+         * @member mmethodP : 方法原型表
+         * @desc :
+         *  此表用于缓冲方法与其原型的关系
+         *  此表仅应当被特定的函数维护,不可直接访问
+         */
+        std::map<$MethodImpl,$MethodDef> mmethodP;
+
+        /**
+         * @member moperatorP : 运算符原型表
+         * @desc :
+         *  此表用于缓冲运算符与其原型的关系
+         *  此表仅应当被特定的函数维护，不可直接访问
+         */
+        std::map<$OperatorImpl,$OperatorDef> moperatorP;
 
         /**
          * @method requestPrototype : 请求原型

@@ -52,7 +52,7 @@ class nameuc : public thing {
 
             template<typename ...Args>
             atom( token pname, Args ... args ):name(pname) {
-                ( tmpl.construct(args), ... );
+                ( tmpl.construct(-1,args), ... );
             }
 
             /**
@@ -66,7 +66,8 @@ class nameuc : public thing {
         $scope              mscope;     //作用域
 
     public:
-        template<typename T,typename ...Args> nameuc( T&& a, Args&& ... args ) { msequence.construct(-1,forward<T>(a)) , ( msequence.construct(forward<Args>(args)), ... ); }
+        template<typename ...Args> nameuc( atom a, Args&& ... args ) { msequence.construct(-1,forward<atom>(a)) , ( msequence.construct(-1,forward<Args>(args)), ... ); }
+        template<typename ...Args> nameuc( token a, Args&& ... args ) { msequence.construct(-1,forward<atom>(atom(a))) , ( msequence.construct(-1,forward<Args>(args)), ... ); }
         nameuc() = default;
         nameuc(const nameuc& ) = default;
         nameuc(nameuc&&) = default;

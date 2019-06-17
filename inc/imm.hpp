@@ -66,28 +66,32 @@ struct imm : thing {
          * @desc :
          *  可选的,如果此对象表示成员运算的结果,h指向成员运算的宿主,避免重复计算
          */
-        agent<imm> h;
+        $imm h;
 
     public:
         imm() = default;
-        imm( immt T, Value* V, anything P, agent<imm> H = nullptr );
+        imm( immt T, Value* V, anything P, $imm H = nullptr );
         imm( const imm& ) = default;
         imm( imm&& ) = default;
         imm& operator=( const imm& ) = default;
         imm& operator=( imm&& ) = default;
         ~imm() = default;
 
-        static $imm address( Value* addr, $eproto proto, agent<imm> host = nullptr );
+        /** 存入实例的地址 */
+        static $imm address( Value* addr, $eproto proto, $imm host = nullptr );
+
+        /** 存入实例本身 */
         static $imm object( Value* obj, $eproto proto );
+
         $eproto eproto()const;
 
         static $imm entity( Value* addr, $ClassDef def );
         $ClassDef metacls()const;
         
-        static $imm function( Value* fp, $MethodDef prototype, agent<imm> host = nullptr );
+        static $imm function( Value* fp, $MethodDef prototype, $imm host = nullptr );
         $MethodDef prototype()const;
 
-        static $imm member( Value* fp, $OperatorDef member, agent<imm> host = nullptr );
+        static $imm member( Value* fp, $OperatorDef member, $imm host = nullptr );
         $OperatorDef member()const;
 
         Value* raw()const;
@@ -134,6 +138,7 @@ struct imm : thing {
 };
 
 using imms = chainz<$imm>;
+using bundles = map<string,$imm>;
 
 }
 #endif

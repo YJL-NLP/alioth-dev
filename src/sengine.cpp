@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cctype>
+#include <set>
 
 namespace alioth {
 
@@ -82,9 +83,8 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
     bool fine = true;
     std::map<string,$definition> nameT;
 
-    auto perform = [&]( auto all, auto symbol, Type*& slot ) {
+    auto perform = [&]( auto all, auto symbol, Type*& slot, vector<Type*> members ) {
         if( !slot ) slot = StructType::create(mctx,symbol);
-        vector<Type*> members;
         for( auto def : all ) {
             if( nameT.count((string)def->name) ) {
                 auto prev = nameT[(string)def->name];
@@ -93,6 +93,7 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
             } else if( auto adef = ($AttrDef)def; adef ) {
                 auto mty = performDefinitionSemanticValidation(adef);
                 nameT[(string)def->name] = def;
+                adef->offset = members.size();
                 members.push_back(mty);
                 if( !mty ) fine = false;
             } else if( auto mdef = ($MethodDef)def; mdef ) {
@@ -105,18 +106,35 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
                     fine = performDefinitionSemanticValidation(mdef) and fine;
                 }
             } else if( auto odef = ($OperatorDef)def; odef ) {
-                //[TODO]: 检查重复
                 fine = performDefinitionSemanticValidation(odef) and fine;
+                auto symbol = generateGlobalUniqueName(($node)odef);
+                if( nameT.count(symbol) ) {
+                    auto prev = nameT[symbol];
+                    mlogrepo(odef->getDocPath())(Lengine::E2001,def->name,prev->getDocPath(),prev->name);
+                    fine = false;
+                }
             }
         }
         ((StructType*)slot)->setBody(members);
     };
 
+    vector<Type*> basesi,basesm;
+    for( const auto& super : clas->supers ) {
+        auto sdef = requestClass( super, Len::NormalClass );
+        if( !sdef ) {mlogrepo(clas->getDocPath())(Lengine::E2004,super.phrase);continue;}
+        auto type = typeuc::GetCompositeType(sdef);
+        auto tpi = generateTypeUsage(type,false);
+        auto tpm = generateTypeUsage(type,true);
+        if( !tpi or !tpm ) continue;
+        basesi.push_back(tpi);
+        basesm.push_back(tpm);
+    }
+
     auto instS = generateGlobalUniqueName(($node)clas);
     auto metaS = generateGlobalUniqueName(($node)clas,Meta);
 
-    perform( clas->metadefs, metaS, mnamedT[metaS] );
-    perform( clas->instdefs, instS, mnamedT[instS] );
+    perform( clas->metadefs, metaS, mnamedT[metaS], basesm );
+    perform( clas->instdefs, instS, mnamedT[instS], basesi );
 
     for( auto def : clas->internal ) {
         if( auto cdef = ($ClassDef)def; cdef ) fine = performDefinitionSemanticValidation(cdef) and fine;
@@ -126,6 +144,70 @@ bool Sengine::performDefinitionSemanticValidation( $ClassDef clas ) {
 }
 
 bool Sengine::performImplementationSemanticValidation( $ClassDef clas ) {
+
+    function<bool($ClassDef,set<$ClassDef>,anything)> validateUnfold = [&]( $ClassDef def, set<$ClassDef> padding, anything come ) -> bool {
+
+        if( padding.count(def) ) {
+            if( auto attr = ($AttrDef)come; attr ) 
+                mlogrepo(attr->getDocPath())(Lengine::E2021,attr->name);
+            else if( auto super = (agent<nameuc>)come; super )
+                mlogrepo(super->getScope()->getDocPath())(Lengine::E2005,super->phrase);
+            return false;
+        }
+
+        padding.insert(def);
+
+        for( auto& super : def->supers ) {
+            auto sdef = requestClass(super,NormalClass,def);
+            if( !validateUnfold( sdef, padding, come?come:&super ) ) return false;
+        }
+
+        for( auto d : def->instdefs ) if( auto adef = ($AttrDef)d; adef
+            and !(bool)adef->meta
+            and adef->proto->dtype->is(typeuc::CompositeType)
+            and adef->proto->elmt == OBJ ) {
+                auto cls = ($ClassDef)adef->proto->dtype->sub;
+                if( !validateUnfold( cls, padding, come?come:adef ) ) return false; }
+        
+        return true;
+    };
+
+
+    function<bool($ClassDef,chainz<map<string,$definition>>)> validateLayout = [&]( $ClassDef def, chainz<map<string,$definition>> layout ) -> bool {
+        
+        layout.construct(-1);
+        
+        for( const auto& d : def->instdefs + def->metadefs ) {
+            token name;
+            if( auto odef = ($OperatorDef)d; odef ) {
+                if( odef->name.is(VN::OPL_MEMBER) )
+                    name = odef->subtitle;
+                else
+                    continue;
+            } else {
+                name = d->name;
+            }
+            
+            for( auto& segment : layout ) {
+                if( segment.count( name ) ) if( d->is(METHODDEF) and segment[name]->is(METHODDEF) ) continue;
+                mlogrepo(d->getDocPath())(Lengine::E2022,name)
+                    (segment[name]->getDocPath(),Lengine::H2002,segment[name]->name);
+                return false;
+            }
+
+            layout[-1][name] = d;
+        }
+
+        for( auto super : def->supers ) {
+            auto sdef = requestClass(super,SuperClass,def);
+            if( !validateLayout( sdef, layout ) ) return false;
+        }
+
+        return true;
+    };
+
+    if( !validateUnfold(clas,{},nullptr) ) return false;
+    if( !validateLayout(clas,{}) ) return false;
     auto tsymbol = generateGlobalUniqueName( ($node)clas, Meta );
     auto esymbol = generateGlobalUniqueName( ($node)clas, Entity );
     auto ty = (StructType*)mnamedT[tsymbol];
@@ -142,19 +224,19 @@ bool Sengine::performDefinitionSemanticValidation( $MethodDef method ) {
     bool fine = true;
 
     auto rtp = generateTypeUsageAsReturnValue(method->rproto,pts);
-    if( !rtp ) fine = false;
 
-    auto tss = generateGlobalUniqueName(method->getScope(),method->meta?Meta:None);
-    if( mnamedT.count(tss) == 0 ) mnamedT[tss] = StructType::create(mctx,tss);
-    pts.push_back(mnamedT[tss]->getPointerTo());
+    if( !method->meta ) {
+        auto tss = generateGlobalUniqueName(method->getScope());
+        if( mnamedT.count(tss) == 0 ) mnamedT[tss] = StructType::create(mctx,tss);
+        pts.push_back(mnamedT[tss]->getPointerTo());
+    }
     
     for( auto par : *method ) {
         auto t = generateTypeUsageAsParameter(par->proto);
         if( !t ) fine = false;
         pts.push_back( t );
     }
-
-    if( !fine ) return false;
+    if( !fine or !rtp ) return false;
     
     auto ft = FunctionType::get(rtp,pts,false);
     auto fs = generateGlobalUniqueName(($node)method);
@@ -302,7 +384,7 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
 
 bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     
-    auto def = requestPrototype(($implementation)method);
+    auto def = ($MethodDef)requestPrototype(($implementation)method);
     if( !def ) {
         mlogrepo(method->getDocPath())(Lengine::E2029,method->name);
         for( auto par : *method ) {
@@ -316,9 +398,10 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     auto ebb = BasicBlock::Create(mctx,"",fp);
     auto builder = IRBuilder<>(ebb);
     auto arg = fp->arg_begin();
+    if( !def->meta ) arg += 1;
+    if( def->rproto->elmt == OBJ and def->rproto->dtype->is(typeuc::CompositeType) ) arg += 1;
 
     for( auto par : *method ) {
-        arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
             registerElement( par, imm::address(arg,par->proto) );
@@ -327,6 +410,7 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
             builder.CreateStore(arg,addr);
             registerElement( par, imm::address(addr,par->proto) );
         }
+        arg += 1;
     }
 
     flag_terminate = false;
@@ -510,19 +594,15 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
             auto symbolT = generateGlobalUniqueName(($node)sc,ad->meta?Meta:None);
             Type* stt = mnamedT[symbolT];
             Value* gep = nullptr;
-            int index = 0;
             if( ad->meta ) {
                 auto symbolE = generateGlobalUniqueName(($node)sc,Entity);
                 auto symbolT = generateGlobalUniqueName(($node)sc,Meta);
                 gep = mcurmod->getOrInsertGlobal(symbolE,mnamedT[symbolT]);
-                while( sc->metadefs[index] != ad ) index++;  //[ATTENTION] : 危险
             } else {
                 auto mdef = requestPrototype(($implementation)impl);
                 gep = requestThis(($implementation)impl);
-                while( sc->instdefs[index] != ad ) index++;   //[ATTENTION] : 危险
-                /** if( mdef and !mdef->meta and gep ) continue; */
             }
-            gep = builder.CreateStructGEP( stt, gep, index );
+            gep = builder.CreateStructGEP( stt, gep, ad->offset );
             if( gep ) ret << imm::address(gep,ad->proto);
         } else if( auto mt = ($MethodDef)e; mt ) {
             auto fs = generateGlobalUniqueName(($node)mt);
@@ -539,48 +619,53 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
 imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::MEMBER ) return {};
 
-    imms ret;
     auto host = performImplementationSemanticValidation( impl->sub[0], builder, BeforeMember );
     if( !host ) return {};
-    Value* vhost = host->asaddress(builder);
-    if( !vhost ) {
-        mlogrepo(impl->getDocPath())(Lengine::E1010,impl->name[-1].name);  
-        return {};
-    }
-    definitions search;
+    const bool meta = host->metacls();
+    imms ret;
 
-    if( auto def = host->metacls(); def ) {
-        search = def->metadefs;
-    } else if( auto proto = host->eproto(); proto ) {
-        auto eve = request(proto->dtype->name,NormalClass);
-        if( eve.size() != 1 ) {
-            mlogrepo(impl->getDocPath())(Lengine::E2004,impl->name[-1].name);  
-            return {};
-        }
-        def = ($ClassDef)eve[0];
-        if( def ) search = def->instdefs;
-    }
-    for( auto d : search )
-        if( (string)d->name == (string)impl->mean ) {
-            if( auto ad = ($AttrDef)d; ad ) {
-                int index = 0; while( search[index] != d ) index ++; //[TODO]: 考虑基类
-                auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], vhost, index );
-                ret << imm::address(gep,ad->proto,host);
-            } else if( auto md = ($MethodDef)d; md and pos == AsProc ) {
-                auto fs = generateGlobalUniqueName(($node)md);
-                auto fp = mcurmod->getFunction(fs);
-                if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
-                ret << imm::function(fp,md,host);
+    function<void($imm,const token&)> select = [&]( $imm v, const token& name ) {
+
+        $ClassDef def = nullptr;
+        if( auto met = host->metacls(); met ) {
+            def = host->metacls();
+        } else if( auto proto = host->eproto(); proto ) {
+            if( auto st = ($typeuc)proto->dtype->sub; st and st->is(typeuc::CompositeType) ) {
+                def = st->sub;
+            } else if( auto sd = ($ClassDef)proto->dtype->sub; sd ) {
+                def = sd;
             }
-        } else if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_MEMBER) and (string)od->subtitle == (string)impl->mean ) {
-            if( pos != LeftOfAssign and od->size() != 0 ) continue;
-            auto fs = generateGlobalUniqueName(($node)od);
-            auto fp = mcurmod->getFunction(fs);
-            if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
-            auto fp = executableEntity(($node)od);
-            ret << imm::member(fp,od,host);
-        }
+        } if( !def ) {mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[0]->phrase,impl->mean);return;}
 
+        for( auto d : meta?def->metadefs:def->instdefs ) 
+            if( (string)d->name == (string)impl->mean ) {
+                if( auto ad = ($AttrDef)d; ad ) {
+                    auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], v->asaddress(builder), ad->offset );
+                    ret << imm::address(gep,ad->proto,v);
+                } else if( auto md = ($MethodDef)d; md and pos == AsProc ) {
+                    auto fs = generateGlobalUniqueName(($node)md);
+                    auto fp = mcurmod->getFunction(fs);
+                    if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
+                    ret << imm::function(fp,md,v);
+                }
+            } else if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_MEMBER) and (string)od->subtitle == (string)impl->mean ) {
+                if( pos != LeftOfAssign and od->size() != 0 ) continue;
+                auto fp = executableEntity(($node)od);
+                ret << imm::member(fp,od,v);
+            }
+
+        for( int i = 0; i != def->supers.size(); i++ ) {
+            auto sd = requestClass(def->supers[i], NormalClass);
+            if( sd ) {
+                auto nv = builder.CreateStructGEP( v->asaddress(builder), i );
+                auto np = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetCompositeType(sd));
+                auto sp = imm::address( nv, np, host->h );
+                select( sp, name );
+            }
+        }
+    };
+
+    select(host, impl->mean);
     if( ret.size() == 0 ) mlogrepo(impl->getDocPath())(Lengine::E2004,impl->mean);
     return ret;
 }
@@ -930,15 +1015,19 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
             switch( impl->mean.id ) {
                 default: break;
                 case VT::BITAND: {
+                    if( right->metacls() ) return nullptr; //[TODO]: 不允许对实体取地址，报错
                     auto proto = right->eproto()->copy();
                     proto->dtype = proto->dtype->getPointerTo();
                     proto->elmt = PTR;
                     return imm::object(right->asaddress(builder),proto);
                 }
                 case VT::MUL: {
-                    auto proto = right->eproto();
+                    auto proto = right->eproto()->copy();
+                    if( !proto->dtype->is(typeuc::PointerType) ) return nullptr; //[TODO]: 报错
                     proto->dtype = proto->dtype->sub;
                     if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
+                    if( proto->dtype->is(typeuc::CompositeType) )
+                        return imm::address(right->asobject(builder),proto);
                     return imm::object(builder.CreateLoad(right->asobject(builder)),proto);
                 }
                 case VT::NOT: {
@@ -1101,7 +1190,7 @@ Type* Sengine::generateTypeUsageAsReturnValue( $eproto proto, vector<Type*>& pts
     else return ty;
 }
 
-Type* Sengine::generateTypeUsage( $typeuc type ) {
+Type* Sengine::generateTypeUsage( $typeuc type, bool meta ) {
     if( !type ) return nullptr;
     
     if( type->is(typeuc::BasicType) ) {
@@ -1117,13 +1206,13 @@ Type* Sengine::generateTypeUsage( $typeuc type ) {
             case typeuc::VoidType                   :   return Type::getVoidTy(mctx);    break;
         }
     } else if( type->is(typeuc::UndeterminedType) ) {
-        return generateTypeUsage(determineDataType(type));
+        return generateTypeUsage(determineDataType(type), meta);
     } else if( type->is(typeuc::CompositeType) ) {
-        auto symbol = generateGlobalUniqueName(($node)type->sub);
+        auto symbol = generateGlobalUniqueName(($node)type->sub,meta?Meta:None);
         if( !mnamedT.count(symbol) ) mnamedT[symbol] = StructType::create(mctx,symbol);
         return mnamedT[symbol];
     } else if( type->is(typeuc::PointerType) ) {
-        auto sub = generateTypeUsage(($typeuc)type->sub);
+        auto sub = generateTypeUsage(($typeuc)type->sub,meta);
         if( sub ) return sub->getPointerTo();
     }
 
@@ -1186,49 +1275,65 @@ std::string Sengine::generateGlobalUniqueName( $node n, Decorate dec ) {
         }
     };
 
-    if( auto list = dynamic_cast<morpheme::plist*>((node*)n); list ) for( auto pd : *list ) {
-        suffix += ".";
-        if( pd->proto->cons ) suffix += "C";
-        switch( pd->proto->elmt ) {
-            case OBJ : suffix += "V";break;
-            case PTR : suffix += "P";break;
-            case REF : suffix += "R";break;
-            case REL : suffix += "L";break;
-            case UDF : suffix += "X";break;
-        }
-
-        auto dtype = pd->proto->dtype;
-        
-        if( dtype->is(typeuc::PointerType) ) {
-            int mask = 0;
-            int i = 0;
-            while( dtype->is(typeuc::PointerType) ) {
-                if( dtype->is(typeuc::ConstraintedPointerType) ) mask |= 1 << i++;
-                dtype = dtype->sub;
+    if( auto olist = dynamic_cast<morpheme::plist*>((node*)n); olist ) {
+        morpheme::plist list;
+        if( n->is(OPERATORDEF) or n->is(OPERATORIMPL) ) {
+            for( auto p : *olist ) {
+                bool in = false;
+                for( auto i = list.begin(); i != list.end(); i++ ) 
+                    if( (string)p->name < (string)(*i)->name ) {
+                        list.insert(p,i.pos);
+                        in = true;
+                        break; 
+                    }
+                list << p;
             }
-            suffix += to_string(mask);
         }
+        for( auto pd : list ) {
+            suffix += ".";
+            if( pd->proto->cons ) suffix += "C";
+            switch( pd->proto->elmt ) {
+                case OBJ : suffix += "V";break;
+                case PTR : suffix += "P";break;
+                case REF : suffix += "R";break;
+                case REL : suffix += "L";break;
+                case UDF : suffix += "X";break;
+            }
 
-        switch( dtype->id ) {
-            case typeuc::ThisClassType: suffix += "T";break;
-            case typeuc::UnknownType:   suffix += "U";break;
-            case typeuc::BooleanType:   suffix += "b";break;
-            case typeuc::Int8:          suffix += "i8";break;
-            case typeuc::Uint8:         suffix += "u8";break;
-            case typeuc::Int16 :        suffix += "i16";break;
-            case typeuc::Uint16:        suffix += "u16";break;
-            case typeuc::Int32 :        suffix += "i32";break;
-            case typeuc::Uint32:        suffix += "u32";break;
-            case typeuc::Int64 :        suffix += "i64";break;
-            case typeuc::Uint64:        suffix += "u64";break;
-            case typeuc::Float32:       suffix += "f32";break;
-            case typeuc::Float64:       suffix += "f64";break;
-            case typeuc::NamedType: case typeuc::CompositeType: {
-                for( auto i = 0; i < pd->proto->dtype->name.size(); i++ )
-                    suffix += "." + (string)pd->proto->dtype->name[i].name;
+            auto dtype = pd->proto->dtype;
+            
+            if( dtype->is(typeuc::PointerType) ) {
+                int mask = 0;
+                int i = 0;
+                while( dtype->is(typeuc::PointerType) ) {
+                    if( dtype->is(typeuc::ConstraintedPointerType) ) mask |= 1 << i++;
+                    dtype = dtype->sub;
+                }
+                suffix += to_string(mask);
+            }
+
+            switch( dtype->id ) {
+                case typeuc::ThisClassType: suffix += "T";break;
+                case typeuc::UnknownType:   suffix += "U";break;
+                case typeuc::BooleanType:   suffix += "b";break;
+                case typeuc::Int8:          suffix += "i8";break;
+                case typeuc::Uint8:         suffix += "u8";break;
+                case typeuc::Int16 :        suffix += "i16";break;
+                case typeuc::Uint16:        suffix += "u16";break;
+                case typeuc::Int32 :        suffix += "i32";break;
+                case typeuc::Uint32:        suffix += "u32";break;
+                case typeuc::Int64 :        suffix += "i64";break;
+                case typeuc::Uint64:        suffix += "u64";break;
+                case typeuc::Float32:       suffix += "f32";break;
+                case typeuc::Float64:       suffix += "f64";break;
+                case typeuc::NamedType: case typeuc::CompositeType: {
+                    for( auto i = 0; i < pd->proto->dtype->name.size(); i++ )
+                        suffix += "." + (string)pd->proto->dtype->name[i].name;
+                }
             }
         }
     }
+
 
     if( auto impl = ($MethodImpl)n; impl ) {
         for( int i = impl->cname.size()-1; i >= 0; i-- ) domain = "." + (string)impl->cname[i].name + domain;
@@ -1347,12 +1452,45 @@ $OperatorDef Sengine::selectOperator( $imm left, token op ) {
     return nullptr;
 }
 
-$OperatorDef Sengine::selectOperator( $imm host, token op, token sub, $imm slave ) {
+$OperatorDef Sengine::selectOperator( $imm master, token op, token sub, $imm slave ) {
+    if( !master ) return nullptr;
+    auto proto = master->eproto();
+    if( !proto or !proto->dtype->is(typeuc::CompositeType) ) return nullptr;
 
+
+    if( auto cd = ($ClassDef)proto->dtype->sub; cd )
+        for( auto d : cd->instdefs ) {
+            if( auto od = ($OperatorDef)d; od and op.in == od->name.in and sub.in == od->subtitle.in ) {
+                if( slave and od->size() != 1 ) continue;
+                if( !slave and od->size() != 0 ) continue;
+                if( slave and !insureEquivalent( (*od->begin())->proto,  slave, Passing ) ) continue;
+                return od;
+            }
+        }
+    
+    return nullptr;
 }
 
-$OperatorDef Sengine::selectOperator( $typeuc type, token op, imms od ) {
+$OperatorDef Sengine::selectOperator( $typeuc type, bundles od ) {
+    if( !type or !type->is(typeuc::CompositeType) ) return nullptr;
+    
+    auto def = ($ClassDef)type->sub; if( !def ) return nullptr;
+    chainz<$OperatorDef> sctor;
 
+    for( auto d : def->instdefs ) 
+        if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_SCTOR) )
+            sctor << od;
+    if( sctor.size() == 0 ) return nullptr;
+
+    //[TODO]: 考虑模板类
+    if( od.size() == 0 ) {
+        for( auto od : sctor ) if( od->size() == 0 ) return od;
+        return nullptr;
+    } else for( auto ctor : sctor ) {
+        //[TODO]
+    }
+
+    return nullptr;
 }
 
 $OperatorDef Sengine::selectOperator( $imm host ) {
@@ -1360,6 +1498,10 @@ $OperatorDef Sengine::selectOperator( $imm host ) {
 }
 
 $OperatorDef Sengine::selectOperator( $imm master, $typeuc type ) {
+
+}
+
+$OperatorDef Sengine::generateDefaultSctor( $ClassDef cls ) {
 
 }
 
@@ -1423,27 +1565,15 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
         if( name.size() == 1 ) {
             if( len == ThisClass or len == SuperClass ) {
                 for( auto idef : cdef->instdefs + cdef->metadefs ) if( (string)idef->name == sname ) res << (anything)idef;
-                if( res.size() == 0 ) for( const auto& super : cdef->supers ) {
-                    auto eve = request(super,NormalClass);
-                    if( eve.size() != 1 ) continue;
-                    if( auto sdef = ($ClassDef)eve[0]; sdef ) res += request(name,SuperClass,sdef);
-                }
+                for( auto idef : cdef->instdefs ) 
+                    if( auto odef = ($OperatorDef)idef; odef
+                        and odef->name.is(VN::OPL_MEMBER)
+                        and (string)odef->subtitle == sname ) res << (anything)idef;
+                for( const auto& super : cdef->supers ) if( auto sdef = requestClass(super,NormalClass); sdef ) 
+                    res += request(name,SuperClass,sdef);
             }
             if( res.size() == 0 and len != SuperClass ) for( auto ndef : cdef->internal ) 
                 if( (string)ndef->name == sname ) res << (anything)ndef;
-        } else if( len != NormalClass and name.size() == 2 ) { /** 对于基类和当前类,两层名称可能指向基类的成员定义 */
-            for( const auto& super : cdef->supers ) {
-                auto eve = request(super,NormalClass);
-                if( eve.size() != 1 ) continue;
-                if( auto sdef = ($ClassDef)eve[0]; sdef ) {
-                    if( (string)super[-1].name == sname ) {
-                        auto sname2 = (string)name[1].name;
-                        for( auto idef : sdef->instdefs + sdef->metadefs ) if( (string)idef->name == sname2 ) res << (anything)idef;
-                    } else {
-                        res += request( name, SuperClass, sdef );
-                    }
-                }
-            }
         }
         if( len != SuperClass and res.size() == 0 ) { /** 对于普通类和当前类,若尚且查无所获,查询内部定义 */
                 res = lookupInternal(name, sc);
@@ -1462,6 +1592,12 @@ everything Sengine::request( const nameuc& name, Len len, $scope sc ) {
     return res;
 }
 
+$ClassDef Sengine::requestClass( const nameuc& name, Len len, $scope sc ) {
+    auto eve = request( name, len, sc );
+    if( eve.size() == 1 ) return ($ClassDef)eve[0];
+    return nullptr;
+}
+
 $ClassDef Sengine::requestThisClass( $implementation impl ) {
     while( impl and !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) ) impl = impl->getScope();
     if( !impl ) return nullptr;
@@ -1469,17 +1605,11 @@ $ClassDef Sengine::requestThisClass( $implementation impl ) {
     if( auto method = ($MethodImpl)impl; method ) {
         if( mmethodP.count(method) ) return mmethodP[method]->getScope();
 
-        auto eve = request(method->cname, NormalClass);
-        if( eve.size() != 1 ) return nullptr;
-
-        return ($ClassDef)eve[0];
+        return requestClass(method->cname, NormalClass);
     } else if( auto oper = ($OperatorImpl)impl; oper ) {
         if( moperatorP.count(oper) ) return moperatorP[oper]->getScope();
 
-        auto eve = request(oper->cname, NormalClass);
-        if( eve.size() != 1 ) return nullptr;
-
-        return ($ClassDef)eve[0];
+        return requestClass(oper->cname, NormalClass);
     }
 
     return nullptr;
@@ -1534,10 +1664,26 @@ Value* Sengine::requestThis( $implementation impl ) {
     while( impl and !impl->is(METHODIMPL) and !impl->is(OPERATORIMPL) ) impl = impl->getScope();
     if( !impl ) return nullptr;
 
+    auto pro = requestPrototype(impl);
+    int offset = 0;
+    if( auto mpro = ($MethodDef)pro; mpro ) {
+        if( mpro->meta ) {
+            $node sc = mpro->getScope();
+            return mcurmod->getOrInsertGlobal(
+                generateGlobalUniqueName(sc,Entity),
+                mnamedT[generateGlobalUniqueName(sc,Meta)] ); }
+        
+        if( mpro->rproto->elmt == OBJ and mpro->rproto->dtype->is(typeuc::CompositeType) )
+            offset = 1;
+    } else if( auto opro = ($OperatorDef)pro; opro ) {
+        if( opro->rproto->elmt == OBJ and opro->rproto->dtype->is(typeuc::CompositeType) )
+            offset = 1;
+    }
+
     auto fp = mcurmod->getFunction(generateGlobalUniqueName(($node)impl));
     if( !fp ) return nullptr;
 
-    return fp->arg_begin();
+    return fp->arg_begin() + offset;
 }
 
 bool Sengine::checkEquivalent( $eproto dst, $eproto src ) {
