@@ -2202,7 +2202,7 @@ Sengine::ModuleTrnsUnit Sengine::performImplementationSemanticValidation( $modes
             auto et = mnamedT[generateGlobalUniqueName(($node)mod,Meta)];
             auto gv = mcurmod->getOrInsertGlobal(generateGlobalUniqueName(($node)mod,Entity),et);
             vector<Value*> args;
-            args.push_back((Value*)gv);
+            // args.push_back((Value*)gv);
             args.push_back(start->arg_begin());
             args.push_back(start->arg_begin()+1);
             auto ret = builder.CreateCall(fp,args);

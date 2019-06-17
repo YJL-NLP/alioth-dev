@@ -1763,17 +1763,62 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
             } break;
         case 13:
             if( it->is(VT::LABEL) ) {
-                ret->name = constructNameUseCase(it,log,scope,true);
-                if( !ret->name ) return nullptr;
-            } else if( it->is(VN::NAMEUC) ) {
+                if( (it+1)->is(VT::COLON) ) {
+                    stack.movi(15,0);
+                } else {
+                    ret->name = constructNameUseCase(it,log,scope,true);
+                    if( !ret->name ) return nullptr;
+                }
+            } else if( it->is(VN::NAMEUC,VN::EXPRESSION) ) {
                 stack.movi(14);
+            } else if( it->is(VT::CLOSES) ) {
+                stack.redu(1,VN::EXPRESSION);
             } else {
                 log(Lengine::E201,*it);
                 return nullptr;
             } break;
         case 14:
-            //[TODO]: 完成构造表达式的语法分析
-            break;
+            if( it->is(VT::CLOSES) ) {
+                stack.redu(2,VN::EXPRESSION);
+            } else if( it->is(VT::COMMA,VT::BITOR) ) {
+                stack.movi(15);
+            } else if( it->is(VN::EXPRESSION) ) {
+                stack.stay();
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 15:
+            if( it->is(VT::LABEL) ) {
+                ret->sub.construct(-1);
+                ret->sub[-1]->setScope(scope);
+                ret->sub[-1]->type = ExpressionImpl::BUNDLE;
+                ret->sub[-1]->mean = *it;
+                stack.movi(16);
+            } else if( it->is(VT::CLOSES) ) {
+                stack.redu(-1,VN::EXPRESSION);
+            } else if( it->is(VN::EXPRESSION) ) {
+                ret->sub[-1]->phrase = *it;
+                stack.redu(1,VN::EXPRESSION);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 16:
+            if( it->is(VT::COLON) ) {
+                stack.movi(17);
+            } else {
+                log(Lengine::E201,*it);
+                return nullptr;
+            } break;
+        case 17:
+            if( it->is(VN::EXPRESSION) ) {
+                stack.redu(2,VN::EXPRESSION);
+            } else if( auto arg = constructExpressionImplementation(it,log,scope); arg ) {
+                ret->sub[-1]->sub << arg;
+            } else {
+                return nullptr;
+            } break;
     }
 
     ret->setScope(scope);

@@ -45,7 +45,7 @@ struct ExpressionImpl : public implementation {
             CONVERT,    //显式类型转换
             TREATE,     //强制类型转换
 
-            PAIR,       //构造对，结构化构造表达式中的构造对
+            BUNDLE,     //构造对，结构化构造表达式中的构造对
         };
 
     public:
@@ -69,7 +69,7 @@ struct ExpressionImpl : public implementation {
          *  NAMEUSAGE --- 名称用例
          *  SCTOR --- 类名
          *  LCTOR --- 类名
-         *  PAIR --- 参数名
+         *  BUNDLE --- 参数名
          */
         nameuc   name;
 
@@ -81,9 +81,9 @@ struct ExpressionImpl : public implementation {
          *  PREFIX --- 包含运算宿主
          *  CALL --- 第一个成员是被调过程表达式,其余成员是形参
          *  LIST --- 包含构成列表的所有表达式
-         *  SCTOR --- 内置所有PAIR
+         *  SCTOR --- 内置所有BUNDLE
          *  LCTOR --- [尚未定义]
-         *  PAIR --- 名称对应的表达式，应当有且仅有一个
+         *  BUNDLE --- 名称对应的表达式，应当有且仅有一个
          *  TRANSFORM --- [要进行类型转换的表达式]
          */
         chainz<$ExpressionImpl>  sub;
