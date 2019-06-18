@@ -404,11 +404,11 @@ bool Sengine::performImplementationSemanticValidation( $MethodImpl method ) {
     for( auto par : *method ) {
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            registerElement( par, imm::address(arg,par->proto) );
+            registerElement( par, imm::element(arg,par->proto) );
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            registerElement( par, imm::address(addr,par->proto) );
+            registerElement( par, imm::element(addr,par->proto) );
         }
         arg += 1;
     }
@@ -450,11 +450,11 @@ bool Sengine::performImplementationSemanticValidation( $OperatorImpl oper ) {
         arg += 1;
         arg->setName( (string)par->name );
         if( par->proto->elmt == OBJ and par->proto->dtype->is(typeuc::CompositeType) ) {
-            registerElement( par, imm::address(arg,par->proto) );
+            registerElement( par, imm::element(arg,par->proto) );
         } else {
             auto addr = builder.CreateAlloca(arg->getType());
             builder.CreateStore(arg,addr);
-            registerElement( par, imm::address(addr,par->proto) );
+            registerElement( par, imm::element(addr,par->proto) );
         }
     }
 
@@ -534,7 +534,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
                 //[TODO] : generateBackendIR for <leave> method
 
                 if( auto rv = insureEquivalent(rproto, v, builder, Returning ); rv ) {
-                    builder.CreateRet(rv->asobject(builder,*this));
+                    builder.CreateRet(rv->asunit(builder,*this));
                     flag_terminate = true;
                 } else {
                     mlogrepo(impl->getDocPath())(Lengine::E2054,impl->expr->phrase);
@@ -606,7 +606,7 @@ $imm Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
                 gep = requestThis(($implementation)impl);
             }
             gep = builder.CreateStructGEP( stt, gep, ad->offset );
-            if( gep ) ret << imm::address(gep,ad->proto);
+            if( gep ) ret << imm::element(gep,ad->proto);
         } else if( auto mt = ($MethodDef)e; mt ) {
             if( pos != Position::AsProc ) continue;
             auto fs = generateGlobalUniqueName(($node)mt);
@@ -643,7 +643,7 @@ $imm Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
             if( (string)d->name == (string)name ) {
                 if( auto ad = ($AttrDef)d; ad ) {
                     auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], v->asaddress(builder,*this), ad->offset );
-                    ret << imm::address(gep,ad->proto,v);
+                    ret << imm::element(gep,ad->proto,v);
                 } else if( auto md = ($MethodDef)d; md and pos == AsProc ) {
                     auto fs = generateGlobalUniqueName(($node)md);
                     auto fp = mcurmod->getFunction(fs);
@@ -662,7 +662,7 @@ $imm Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
             if( sd ) {
                 auto nv = builder.CreateStructGEP( v->asaddress(builder,*this), i );
                 auto np = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetCompositeType(sd));
-                auto sp = imm::address( nv, np, host->h );
+                auto sp = imm::element( nv, np, host->h );
                 select( sp, name );
             }
         }
@@ -697,17 +697,17 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
     
     switch( impl->mean.id ) {
         default: break;
-        case VT::ASSIGN: builder.CreateStore(right->asobject(builder,*this),left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
-        case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN: builder.CreateStore(right->asunit(builder,*this),left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asunit(builder,*this),right->asunit(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
     }
 
     return left;
@@ -719,7 +719,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
         case VT::iINTEGERn: { // 限制10进制数字只能32位
             auto i = std::stoll(impl->mean);
             if( i > INT32_MAX or i < INT32_MIN ) return nullptr;
-            return imm::object( 
+            return imm::instance( 
                 builder.getInt32(i),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -739,7 +739,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 else if( len <= 64 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
                 else return nullptr;
             auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
-            return imm::object( value, proto );
+            return imm::instance( value, proto );
         } break;
         case VT::iINTEGERh: {
             auto i = std::stoll(string(impl->mean.tx.begin()+2,impl->mean.tx.end()),nullptr,16);
@@ -752,7 +752,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 else if( len <= 16 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
                 else return nullptr;
             auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
-            return imm::object( value, proto );
+            return imm::instance( value, proto );
         } break;
         case VT::iINTEGERo: {
             auto i = std::stoll(string(impl->mean.tx.begin()+2,impl->mean.tx.end()),nullptr,8);
@@ -765,17 +765,17 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
                 else if( len <= 124 ) {type = typeuc::GetBasicDataType(typeuc::Uint64);value = builder.getInt64(i);}
                 else return nullptr;
             auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
-            return imm::object( value, proto );
+            return imm::instance( value, proto );
         } break;
         case VT::iFLOAT: {
             auto i = std::stod(impl->mean.tx);
             auto value = ConstantFP::get(builder.getContext(), APFloat(i));
             $typeuc type = typeuc::GetBasicDataType(value->getType()->isDoubleTy()?typeuc::Float64:typeuc::Float32);
             auto proto = eproto::MakeUp(impl->getScope(),OBJ,type);
-            return imm::object( value, proto );
+            return imm::instance( value, proto );
         }
         case VT::iSTRING: {
-            return imm::object(
+            return imm::instance(
                 builder.CreateGlobalStringPtr( Xengine::extractText(impl->mean) ),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -785,7 +785,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
             );
         }
         case VT::iNULL: {
-            return imm::object(
+            return imm::instance(
                 ConstantPointerNull::get(builder.getInt8PtrTy()),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -795,7 +795,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
             );
         }
         case VT::iTHIS: {
-            return imm::object(
+            return imm::instance(
                 requestThis(($implementation)impl),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -805,7 +805,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
             );
         }
         case VT::iTRUE: {
-            return imm::object(
+            return imm::instance(
                 builder.getTrue(),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -815,7 +815,7 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
             );
         }
         case VT::iFALSE: {
-            return imm::object(
+            return imm::instance(
                 builder.getFalse(),
                 eproto::MakeUp(
                     impl->getScope(),
@@ -902,60 +902,60 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                             return nullptr;
                         }
                         switch( impl->mean.id ) {
-                            case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                            case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                            case VT::BITOR: rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                            case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                            case VT::SHL: rv = builder.CreateShl(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                            case VT::SHR: rv = builder.CreateAShr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::MOL:   rv = builder.CreateSRem(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                            case VT::BITAND:rv = builder.CreateAnd(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                            case VT::BITOR: rv = builder.CreateOr(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                            case VT::BITXOR:rv = builder.CreateXor(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                            case VT::SHL: rv = builder.CreateShl(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                            case VT::SHR: rv = builder.CreateAShr(left->asunit(builder,*this),right->asunit(builder,*this)); break;
                             default: return nullptr;
                         }
                     } break;
-                    case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder,*this),right->asobject(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder,*this),right->asobject(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::GT: rv = builder.CreateICmpSGE(left->asunit(builder,*this),right->asunit(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LT: rv = builder.CreateICmpSLT(left->asunit(builder,*this),right->asunit(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LE: rv = builder.CreateICmpSLT(left->asunit(builder,*this),right->asunit(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::GE: rv = builder.CreateICmpSGE(left->asunit(builder,*this),right->asunit(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::EQ: rv = builder.CreateICmpEQ(left->asunit(builder,*this),right->asunit(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::NE: rv = builder.CreateICmpNE(left->asunit(builder,*this),right->asunit(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
 
-                    case VT::AND: rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
-                    case VT::OR:  rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                    case VT::AND: rv = builder.CreateAnd(left->asunit(builder,*this),right->asunit(builder,*this)); break;
+                    case VT::OR:  rv = builder.CreateOr(left->asunit(builder,*this),right->asunit(builder,*this)); break;
 
                     case VT::PLUS:  rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFAdd(left->asobject(builder,*this),right->asobject(builder,*this)):
-                        builder.CreateAdd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                        builder.CreateFAdd(left->asunit(builder,*this),right->asunit(builder,*this)):
+                        builder.CreateAdd(left->asunit(builder,*this),right->asunit(builder,*this)); break;
                     case VT::MINUS: rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFSub(left->asobject(builder,*this),right->asobject(builder,*this)):
-                        builder.CreateSub(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                        builder.CreateFSub(left->asunit(builder,*this),right->asunit(builder,*this)):
+                        builder.CreateSub(left->asunit(builder,*this),right->asunit(builder,*this)); break;
                     case VT::MUL:   rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFMul(left->asobject(builder,*this),right->asobject(builder,*this)):
-                        builder.CreateMul(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                        builder.CreateFMul(left->asunit(builder,*this),right->asunit(builder,*this)):
+                        builder.CreateMul(left->asunit(builder,*this),right->asunit(builder,*this)); break;
                     case VT::DIV:   rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFDiv(left->asobject(builder,*this),right->asobject(builder,*this)):
-                        builder.CreateSDiv(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                        builder.CreateFDiv(left->asunit(builder,*this),right->asunit(builder,*this)):
+                        builder.CreateSDiv(left->asunit(builder,*this),right->asunit(builder,*this)); break;
                 }
-                return imm::object( rv, proto );
+                return imm::instance( rv, proto );
             }
         } break;
         case ExpressionImpl::SUFFIX: {
             auto operand = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
             if( !operand ) return nullptr;
-            Value* rv = operand->asobject(builder,*this);
+            Value* rv = operand->asunit(builder,*this);
             switch( impl->mean.id ) {
                 case VT::INCRESS: builder.CreateStore(builder.CreateAdd(rv,builder.getInt32(1)),operand->asaddress(builder,*this));break;
                 case VT::DECRESS: builder.CreateStore(builder.CreateSub(rv,builder.getInt32(1)),operand->asaddress(builder,*this));break;
                 case VT::OPENL: {
                     auto ind = performImplementationSemanticValidation(impl->sub[1],builder,AsParam);
                     if( !ind ) return nullptr;
-                    rv = builder.CreateGEP(rv,ind->asobject(builder,*this));
+                    rv = builder.CreateGEP(rv,ind->asunit(builder,*this));
                     rv = builder.CreateLoad(rv);
                     auto proto = operand->eproto();
                     proto->dtype = proto->dtype->sub;
                     if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
-                    return imm::object(rv,proto);
+                    return imm::instance(rv,proto);
                 }
             }
-            return imm::object(rv,operand->eproto());
+            return imm::instance(rv,operand->eproto());
         } break;
         case ExpressionImpl::PREFIX: {
             auto right = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
@@ -967,7 +967,7 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                     auto proto = right->eproto()->copy();
                     proto->dtype = proto->dtype->getPointerTo();
                     proto->elmt = PTR;
-                    return imm::object(right->asaddress(builder,*this),proto);
+                    return imm::instance(right->asaddress(builder,*this),proto);
                 }
                 case VT::MUL: {
                     auto proto = right->eproto()->copy();
@@ -975,20 +975,20 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                     proto->dtype = proto->dtype->sub;
                     if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
                     if( proto->dtype->is(typeuc::CompositeType) )
-                        return imm::address(right->asobject(builder,*this),proto);
-                    return imm::object(builder.CreateLoad(right->asobject(builder,*this)),proto);
+                        return imm::element(right->asunit(builder,*this),proto);
+                    return imm::instance(builder.CreateLoad(right->asunit(builder,*this)),proto);
                 }
                 case VT::NOT: {
                     auto proto = right->eproto();
-                    rv = builder.CreateNot(right->asobject(builder,*this));
-                    return imm::object(rv,proto);
+                    rv = builder.CreateNot(right->asunit(builder,*this));
+                    return imm::instance(rv,proto);
                 }
                 case VT::INCRESS: {
-                    builder.CreateStore(builder.CreateAdd(right->asobject(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
+                    builder.CreateStore(builder.CreateAdd(right->asunit(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
                     return right;
                 }
                 case VT::DECRESS: {
-                    builder.CreateStore(builder.CreateSub(right->asobject(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
+                    builder.CreateStore(builder.CreateSub(right->asunit(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
                     return right;
                 }
             }
@@ -1081,13 +1081,13 @@ $imm Sengine::selectResult( $ExpressionImpl impl, imms results, Position pos ) {
 
 $imm Sengine::generateCall( IRBuilder<>& builder, Value* fp, vector<Value*> args, $eproto rp ) {
     if( rp->elmt == OBJ and rp->dtype->is(typeuc::CompositeType) ) {
-        auto rv = imm::address(builder.CreateAlloca(generateTypeUsage(rp->dtype)),rp);
+        auto rv = imm::element(builder.CreateAlloca(generateTypeUsage(rp->dtype)),rp);
         registerInstance( rv );
         args.insert(args.begin(),rv->asaddress(builder,*this));
         builder.CreateCall(fp,args);
         return rv;
     } else {
-        return imm::object(builder.CreateCall(fp,args),rp);
+        return imm::instance(builder.CreateCall(fp,args),rp);
     }
 }
 
@@ -1105,7 +1105,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
         if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
             inm = insureEquivalent(impl->proto,inm,builder,Constructing);
         }
-        if( inm ) inv = inm->asobject(builder,*this);
+        if( inm ) inv = inm->asunit(builder,*this);
         else {mlogrepo(impl->getDocPath())(Lengine::E2054,impl->init->phrase);fine = false;}
     }
 
@@ -1117,7 +1117,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
     Value* addr = builder.CreateAlloca(tp, nullptr, (string)impl->name);
     if( inv and fine ) builder.CreateStore(inv,addr);
 
-    if( addr ) registerElement( impl, imm::address(addr,impl->proto) );
+    if( addr ) registerElement( impl, imm::element(addr,impl->proto) );
     return addr != nullptr and fine;
 }
 
@@ -1133,7 +1133,7 @@ bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuild
     bool ret = false;
     auto cond = performImplementationSemanticValidation( impl->exp, builder, AsOperand );
     if( !cond ) return false;
-    builder.CreateCondBr(cond->asobject(builder,*this),bb2,bb3);
+    builder.CreateCondBr(cond->asunit(builder,*this),bb2,bb3);
     builder.SetInsertPoint(bb4);
 
     bd.SetInsertPoint(bb2);
@@ -1167,7 +1167,7 @@ bool Sengine::performImplementationSemanticValidation( $LoopImpl impl ,IRBuilder
     if( impl->cond ){
         auto cond = performImplementationSemanticValidation( impl->cond, bd, AsOperand );
         auto bb2 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
-        bd.CreateCondBr(cond->asobject(builder,*this),bb2,bb3);
+        bd.CreateCondBr(cond->asunit(builder,*this),bb2,bb3);
         bd.SetInsertPoint(bb2);
     }
 
@@ -1893,29 +1893,29 @@ $eproto Sengine::determineElementPrototype( $eproto proto ) {
 
 $imm Sengine::doConvert( $typeuc dst, $imm value, IRBuilder<>& builder ) {
     auto dstt = generateTypeUsage(dst);
-    auto val = value->asobject(builder,*this);
+    auto val = value->asunit(builder,*this);
     auto src = value->eproto()->dtype;
 
     if( checkEquivalent(dst,src) ) return value;
     auto droto = eproto::MakeUp( dst->name.getScope(), dst->is(typeuc::PointerType)?PTR:src->is(typeuc::CompositeType)?REF:OBJ, dst );
 
     if( src->is(typeuc::SignedIntegerType) ) {
-        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true), droto->copy() );
-        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,true),droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateSIToFP(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::instance(builder.CreateIntCast(val,dstt,true), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::instance(builder.CreateIntCast(val,dstt,true),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::instance(builder.CreateSIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::instance(builder.CreateIntToPtr(val,dstt), droto->copy() );
     } else if( src->is(typeuc::UnsignedIntegerType) ) {
-        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false), droto->copy() );
-        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateIntCast(val,dstt,false),droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateUIToFP(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateIntToPtr(val,dstt), droto->copy() );
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::instance(builder.CreateIntCast(val,dstt,false), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::instance(builder.CreateIntCast(val,dstt,false),droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::instance(builder.CreateUIToFP(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::instance(builder.CreateIntToPtr(val,dstt), droto->copy() );
     } else if( src->is(typeuc::PointerType) ) {
-        if( dst->is(typeuc::IntegerType) ) return imm::object(builder.CreatePtrToInt(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::PointerType) ) return imm::object(builder.CreateBitCast(val,dstt), droto->copy() );
+        if( dst->is(typeuc::IntegerType) ) return imm::instance(builder.CreatePtrToInt(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::PointerType) ) return imm::instance(builder.CreateBitCast(val,dstt), droto->copy() );
     } else if( src->is(typeuc::FloatPointType) ) {
-        if( dst->is(typeuc::SignedIntegerType) ) return imm::object(builder.CreateFPToSI(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::object(builder.CreateFPToUI(val,dstt), droto->copy() );
-        else if( dst->is(typeuc::FloatPointType) ) return imm::object(builder.CreateFPCast(val,dstt), droto->copy() );
+        if( dst->is(typeuc::SignedIntegerType) ) return imm::instance(builder.CreateFPToSI(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::instance(builder.CreateFPToUI(val,dstt), droto->copy() );
+        else if( dst->is(typeuc::FloatPointType) ) return imm::instance(builder.CreateFPCast(val,dstt), droto->copy() );
     } else if( src->is(typeuc::CompositeType) ) {
         //[TODO]: 完成复合数据类型的类型转换
     }

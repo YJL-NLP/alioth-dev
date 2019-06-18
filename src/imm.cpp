@@ -12,11 +12,11 @@ imm::imm( immt T, Value* V, anything P, agent<imm> H ):t(T),v(V),p(P),h(H){}
 bool imm::is( immt arg ) const { return arg == t; }
 imm::immt imm::is()const{ return t; }
 
-$imm imm::address( Value* addr, $eproto proto, agent<imm> host ) {return new imm(adr,addr,(anything)proto,host);}
-$imm imm::object( Value* obj, $eproto proto ) {return new imm(val,obj,(anything)proto);}
+$imm imm::element( Value* addr, $eproto proto, agent<imm> host ) {return new imm(ele,addr,(anything)proto,host);}
+$imm imm::instance( Value* obj, $eproto proto ) {return new imm(ins,obj,(anything)proto);}
 $eproto imm::eproto()const { 
     switch( t ) {
-        case adr:case val:{
+        case ele:case ins:{
             auto pro = ($eproto)p; 
             return pro?pro->copy():pro;
         } break;
@@ -33,7 +33,7 @@ $eproto imm::eproto()const {
     }
 }
 
-$imm imm::entity( Value* addr, $ClassDef def ) {return new imm(adr,addr,(anything)eproto::MakeUp(def->getScope(),OBJ,typeuc::GetEntityType(def))); }
+$imm imm::entity( Value* addr, $ClassDef def ) {return new imm(ele,addr,(anything)eproto::MakeUp(def->getScope(),OBJ,typeuc::GetEntityType(def))); }
 
 $imm imm::function( Value* fp, $MethodDef prototype, agent<imm> host ) { return new imm(fun,fp,(anything)prototype,host); }
 $MethodDef imm::prototype()const{ return ($MethodDef)p; }
@@ -43,13 +43,13 @@ $OperatorDef imm::member()const{ return t==mem?($OperatorDef)p:nullptr; }
 
 Value* imm::raw()const { return v; }
 
-Value* imm::asobject( IRBuilder<>& builder, Sengine& sengine )const {
+Value* imm::asunit( IRBuilder<>& builder, Sengine& sengine )const {
     if( !v ) return nullptr;
     auto ret = v;
     switch( t ) {
         default: return nullptr;
-        case adr: ret = builder.CreateLoad(ret);[[fallthrough]];
-        case val: {
+        case ele: ret = builder.CreateLoad(ret);[[fallthrough]];
+        case ins: {
             auto proto = ($eproto)p;
             if( !proto ) return nullptr;
             if( proto->elmt == REF or proto->elmt == REL ) ret = builder.CreateLoad(ret);
@@ -60,8 +60,8 @@ Value* imm::asobject( IRBuilder<>& builder, Sengine& sengine )const {
             auto proto = ($OperatorDef)p;
             if( proto->size() ) return nullptr;
             vector<Value*> args = {h->asaddress(builder,sengine)};
-            auto ri = sengine.generateCall(fp, args, proto->rproto );
-            return ri->asobject(builder,sengine);
+            auto ri = sengine.generateCall( builder, fp, args, proto->rproto );
+            return ri->asunit(builder,sengine);
         } break;
     }
 }
@@ -71,10 +71,10 @@ Value* imm::asaddress( IRBuilder<>& builder, Sengine& sengine )const {
     auto proto = ($eproto)p;
     switch( t ) {
         default: return nullptr;
-        case val:
+        case ins:
             if( proto->elmt == REF or proto->elmt == REL ) return v;
             else return nullptr;
-        case adr:
+        case ele:
             if( proto->elmt == REF or proto->elmt == REL ) return builder.CreateLoad(v);
             else return v;
         case mem: {
@@ -82,7 +82,7 @@ Value* imm::asaddress( IRBuilder<>& builder, Sengine& sengine )const {
             auto proto = ($OperatorDef)p;
             if( proto->size() ) return nullptr;
             vector<Value*> args = {h->asaddress(builder,sengine)};
-            auto ri = sengine.generateCall(fp, args, proto->rproto );
+            auto ri = sengine.generateCall( builder, fp, args, proto->rproto );
             return ri->asaddress(builder,sengine);
         }
     }
@@ -92,10 +92,10 @@ bool imm::hasaddress()const{
     auto proto = ($eproto)p;
     switch( t ) {
         default: return false;
-        case val:
+        case ins:
             if( proto->elmt == REF or proto->elmt == REL ) return true;
             else return false;
-        case adr:
+        case ele:
             if( proto->elmt == REF or proto->elmt == REL ) return true;
             else return true;
     }
@@ -106,12 +106,12 @@ Value* imm::asparameter( IRBuilder<>& builder, Sengine& sengine, etype e )const 
     auto proto = ($eproto)p;
     switch( t ) {
         default: return nullptr;
-        case val: 
+        case ins: 
             if( e == REF or e == REL )
                 return nullptr;
             else
                 return v;
-        case adr: 
+        case ele: 
             if( e == OBJ )
                 if( proto->dtype->is(typeuc::CompositeType) ) return v;
                 else return builder.CreateLoad(v);
@@ -129,7 +129,7 @@ Value* imm::asparameter( IRBuilder<>& builder, Sengine& sengine, etype e )const 
             auto proto = ($OperatorDef)p;
             if( proto->size() ) return nullptr;
             vector<Value*> args = {h->asaddress(builder,sengine)};
-            auto ri = sengine.generateCall(fp, args, proto->rproto );
+            auto ri = sengine.generateCall( builder, fp, args, proto->rproto );
             return ri->asparameter(builder,sengine,e);
         }
 

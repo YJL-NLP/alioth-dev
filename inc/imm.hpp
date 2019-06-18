@@ -19,6 +19,13 @@ using namespace llvm;
  *  一个基础数据类型的加法运算中间结果就是一个立即对象
  *  立即对象直接存储数据,也直接存储数据类型
  *  立即寻址存储地址,存储元素原型
+ * 
+ *  满足Alioth语言规定的数据类型的对象，指针，共称  单元 unit
+ *  对象，指针，引用，重载都能被元素直接寻址，共称   实例 instance
+ *  对对象来说，地址是元素
+ *  对指针来说，地址是元素
+ *  对被引用管理的单元，地址是引用
+ *  对被重载管理的单元，地址是重载
  */
 struct imm;
 using $imm = agent<imm>;
@@ -27,8 +34,8 @@ struct imm : thing {
 
     public:
         enum immt {
-            adr, // v 是元素,对于VAR和PTR存储了对象的地址Obj*, 对于REF和VAL存储了对象的指针的地址Obj**
-            val, // v 是对象,对于VAR和PTR存储了对象本身Obj, 对于REF和VAL存储了对象的指针Obj*
+            ele, // v 是元素,对于VAR和PTR存储了对象的地址Obj*, 对于REF和VAL存储了对象的指针的地址Obj**
+            ins, // v 是实例,对于VAR和PTR存储了对象本身Obj, 对于REF和VAL存储了对象的指针Obj*
             fun, // v 是函数
             mem, // v 是成员运算符
         };
@@ -80,11 +87,11 @@ struct imm : thing {
         bool is( immt )const;
         immt is()const;
 
-        /** 存入实例的地址 */
-        static $imm address( Value* addr, $eproto proto, $imm host = nullptr );
+        /** 存入元素 */
+        static $imm element( Value* addr, $eproto proto, $imm host = nullptr );
 
-        /** 存入实例本身 */
-        static $imm object( Value* obj, $eproto proto );
+        /** 存入实例 */
+        static $imm instance( Value* obj, $eproto proto );
 
         $eproto eproto()const;
 
@@ -103,7 +110,7 @@ struct imm : thing {
          * 1. 对于立即寻址,执行load 
          * 2. 对于引用和右值,再执行load
          */
-        Value* asobject( IRBuilder<>& builder, Sengine& sengine )const;
+        Value* asunit( IRBuilder<>& builder, Sengine& sengine )const;
 
         /**
          * 获取可以执行store存储对象的Value*
