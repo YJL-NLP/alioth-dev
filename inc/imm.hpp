@@ -22,11 +22,11 @@ using namespace llvm;
  */
 struct imm;
 using $imm = agent<imm>;
+class Sengine;
 struct imm : thing {
 
     public:
-        enum immt { 
-            ety, // v 是类实体的GV,属于address
+        enum immt {
             adr, // v 是元素,对于VAR和PTR存储了对象的地址Obj*, 对于REF和VAL存储了对象的指针的地址Obj**
             val, // v 是对象,对于VAR和PTR存储了对象本身Obj, 对于REF和VAL存储了对象的指针Obj*
             fun, // v 是函数
@@ -77,6 +77,9 @@ struct imm : thing {
         imm& operator=( imm&& ) = default;
         ~imm() = default;
 
+        bool is( immt )const;
+        immt is()const;
+
         /** 存入实例的地址 */
         static $imm address( Value* addr, $eproto proto, $imm host = nullptr );
 
@@ -86,7 +89,6 @@ struct imm : thing {
         $eproto eproto()const;
 
         static $imm entity( Value* addr, $ClassDef def );
-        $ClassDef metacls()const;
         
         static $imm function( Value* fp, $MethodDef prototype, $imm host = nullptr );
         $MethodDef prototype()const;
@@ -100,28 +102,23 @@ struct imm : thing {
          * 获取可以直接参与运算的Value*
          * 1. 对于立即寻址,执行load 
          * 2. 对于引用和右值,再执行load
-         * 3. 对于实体,执行load
          */
-        Value* asobject( IRBuilder<>& builder )const;
+        Value* asobject( IRBuilder<>& builder, Sengine& sengine )const;
 
         /**
          * 获取可以执行store存储对象的Value*
          * 1. 对于立即对象,REF和VAL,直接返回v,其他返回空
          * 2. 对于立即寻址,REF和VAL,执行load后返回,其他直接返回
-         * 3. 对于实体,直接返回
          */
-        Value* asaddress( IRBuilder<>& builder )const;
+        Value* asaddress( IRBuilder<>& builder, Sengine& sengine )const;
         bool hasaddress()const;
 
         /**
          * 获取可用于传参Value* 要确保请求类型和源类型完全一致
-         * 1. 对实体
-         *      若请求指针，失败
-         *      其他情况直接返回
-         * 2. 对立即对象
+         * 1. 对立即对象
          *      若请求引用或重载，失败
          *      对其他情况，直接返回
-         * 3. 对立即寻址
+         * 2. 对立即寻址
          *      若请求对象
          *          若复合数据类型，直接返回
          *          否则，执行load后返回
@@ -131,7 +128,7 @@ struct imm : thing {
          *      若请求引用或重载
          *          直接返回
          */
-        Value* asparameter( IRBuilder<>& builder, etype e )const;
+        Value* asparameter( IRBuilder<>& builder, Sengine& sengine, etype e )const;
 
         Value* asfunction()const;
 

@@ -46,6 +46,13 @@ $typeuc typeuc::GetCompositeType( $ClassDef def ) {
     return new typeuc(def);
 }
 
+$typeuc typeuc::GetEntityType( $ClassDef def ) {
+    if( !def ) return nullptr;
+    auto ret = new typeuc(def);
+    ret->id = EntityType;
+    return ret;
+}
+
 $typeuc typeuc::getPointerTo( bool constrainted ) {
     return GetPointerType( this, constrainted );
 }

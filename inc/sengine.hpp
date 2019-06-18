@@ -40,6 +40,8 @@ using namespace llvm;
  */
 class Sengine {
 
+    friend class imm;
+
     private:
         /** 产生符号时,可选的后缀 */
         enum Decorate { None, Meta, Entity };
@@ -208,13 +210,29 @@ class Sengine {
          * @param pos : 指定表达式的地位，在语义分析时，倾向于使表达式的结果在接下来的使用中有效。
          */
         $imm performImplementationSemanticValidation( $ExpressionImpl impl ,IRBuilder<>& builde, Position pos );
-        imms processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
-        imms processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
+        $imm processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
+        $imm processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCallExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processCalcExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
         $imm processConvertExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos );
+
+        /**
+         * @member env_expr : 表达式环境
+         * @desc :
+         *  MemberExpression和NameusageExpression用于选择结果的环境
+         */
+        imms env_expr;
+        $imm selectResult( $ExpressionImpl impl, imms results, Position pos );
+
+        /**
+         * @method generateCall : 产生调用
+         * @desc :
+         *  产生调用指令，若有必要，为返回对象开辟空间，添加指针参数
+         *  注意，此方法不负责处理this参数，参数列表传入时，应当已经正确包含了this
+         */
+        $imm generateCall( IRBuilder<>& builder, Value* fp, vector<Value*> args, $eproto rp );
         
         /**
          * @method performImplementationSemanticValidation : 执行语义检查

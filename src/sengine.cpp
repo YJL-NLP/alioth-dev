@@ -351,7 +351,7 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
             else if( auto proto = (*opdef)[0]->proto; proto->elmt != PTR or (($typeuc)proto->dtype->sub)->sub != opdef->getScope() )
                 {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_MEMBER) ) {
-            if( opdef->size() != 0 )
+            if( opdef->size() > 1 )
                 {mlogrepo(opdef->getDocPath())(Lengine::E2042,opdef->phrase,opdef->name);fine = false;}
         } else if( opdef->name.is(VN::OPL_WHERE) ) {
             if( opdef->size() != 0 )
@@ -534,7 +534,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
                 //[TODO] : generateBackendIR for <leave> method
 
                 if( auto rv = insureEquivalent(rproto, v, builder, Returning ); rv ) {
-                    builder.CreateRet(rv->asobject(builder));
+                    builder.CreateRet(rv->asobject(builder,*this));
                     flag_terminate = true;
                 } else {
                     mlogrepo(impl->getDocPath())(Lengine::E2054,impl->expr->phrase);
@@ -558,8 +558,8 @@ $imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRB
     if( !impl or flag_terminate ) return nullptr;
     switch( impl->type ) {
         default: return nullptr;
-        case ExpressionImpl::NAMEUSAGE: if( auto s = processNameusageExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
-        case ExpressionImpl::MEMBER: if( auto s = processMemberExpression( impl, builder, pos ); s.size() ) return s[0]; else return nullptr;
+        case ExpressionImpl::NAMEUSAGE: return processNameusageExpression( impl, builder, pos );
+        case ExpressionImpl::MEMBER: return processMemberExpression( impl, builder, pos );
         case ExpressionImpl::ASSIGN: return processAssignExpression( impl, builder, pos );
         case ExpressionImpl::VALUE: return processValueExpression( impl, builder, pos );
         case ExpressionImpl::SUFFIX: return processCalcExpression( impl, builder, pos );
@@ -570,7 +570,7 @@ $imm Sengine::performImplementationSemanticValidation( $ExpressionImpl impl, IRB
     }
 }
 
-imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
+$imm Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::NAMEUSAGE ) return {};
 
     imms ret;
@@ -582,14 +582,17 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
     }
     for( auto e : eve ) {
         if( auto ce = ($ClassDef)e; ce ) {
+            if( pos == Position::AsProc ) continue;
             auto symbolE = generateGlobalUniqueName(($node)e,Entity);
             auto symbolT = generateGlobalUniqueName(($node)e,Meta);
             auto gt = (StructType*)mnamedT[symbolT];
             auto gv = mcurmod->getOrInsertGlobal(symbolE, gt);
             ret << imm::entity( gv, ce );
         } else if( auto cm = ($ConstructImpl)e; cm ) {
+            if( pos == Position::AsProc ) continue;
             if( auto inst = lookupElement(cm->name); inst ) ret << inst;
         } else if( auto ad = ($AttrDef)e; ad ) {
+            if( pos == Position::AsProc ) continue;
             auto sc = ($ClassDef)ad->getScope();
             auto symbolT = generateGlobalUniqueName(($node)sc,ad->meta?Meta:None);
             Type* stt = mnamedT[symbolT];
@@ -605,6 +608,7 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
             gep = builder.CreateStructGEP( stt, gep, ad->offset );
             if( gep ) ret << imm::address(gep,ad->proto);
         } else if( auto mt = ($MethodDef)e; mt ) {
+            if( pos != Position::AsProc ) continue;
             auto fs = generateGlobalUniqueName(($node)mt);
             auto gv = mcurmod->getFunction(fs);
             if( !gv ) gv = Function::Create((FunctionType*)mnamedT[fs],GlobalValue::ExternalLinkage,fs,mcurmod.get());
@@ -612,35 +616,33 @@ imms Sengine::processNameusageExpression( $ExpressionImpl impl, IRBuilder<>& bui
         }
     }
 
-    if( ret.size() == 0 ) return {}; //保证返回结果不是空集,因为驱动函数要直接使用结果
-    return ret;
+    return selectResult( impl, ret, pos );
 }
 
-imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
+$imm Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::MEMBER ) return {};
 
     auto host = performImplementationSemanticValidation( impl->sub[0], builder, BeforeMember );
     if( !host ) return {};
-    const bool meta = host->metacls();
     imms ret;
 
     function<void($imm,const token&)> select = [&]( $imm v, const token& name ) {
 
+        auto type = host->eproto()->dtype;
         $ClassDef def = nullptr;
-        if( auto met = host->metacls(); met ) {
-            def = host->metacls();
-        } else if( auto proto = host->eproto(); proto ) {
-            if( auto st = ($typeuc)proto->dtype->sub; st and st->is(typeuc::CompositeType) ) {
-                def = st->sub;
-            } else if( auto sd = ($ClassDef)proto->dtype->sub; sd ) {
-                def = sd;
-            }
-        } if( !def ) {mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[0]->phrase,impl->mean);return;}
+        if( auto st = ($typeuc)type->sub; st and (st->is(typeuc::CompositeType) or st->is(typeuc::EntityType)) ) {
+            def = st->sub;
+            type = type->sub;
 
-        for( auto d : meta?def->metadefs:def->instdefs ) 
-            if( (string)d->name == (string)impl->mean ) {
+        } else if( auto sd = ($ClassDef)type->sub; sd ) {
+            def = sd;
+        }
+        if( !def ) {mlogrepo(impl->getDocPath())(Lengine::E2055,impl->sub[0]->phrase,impl->mean);return;}
+
+        for( auto d : type->is(typeuc::EntityType)?def->metadefs:def->instdefs )
+            if( (string)d->name == (string)name ) {
                 if( auto ad = ($AttrDef)d; ad ) {
-                    auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], v->asaddress(builder), ad->offset );
+                    auto gep = builder.CreateStructGEP( mnamedT[generateGlobalUniqueName(($node)d,Meta)], v->asaddress(builder,*this), ad->offset );
                     ret << imm::address(gep,ad->proto,v);
                 } else if( auto md = ($MethodDef)d; md and pos == AsProc ) {
                     auto fs = generateGlobalUniqueName(($node)md);
@@ -648,8 +650,9 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
                     if( !fp ) fp = Function::Create( (FunctionType*)mnamedT[fs], GlobalValue::ExternalLinkage, fs, mcurmod.get() );
                     ret << imm::function(fp,md,v);
                 }
-            } else if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_MEMBER) and (string)od->subtitle == (string)impl->mean ) {
+            } else if( auto od = ($OperatorDef)d; od and od->name.is(VN::OPL_MEMBER) and (string)od->subtitle == (string)name ) {
                 if( pos != LeftOfAssign and od->size() != 0 ) continue;
+                if( pos == LeftOfAssign and od->size() == 0 ) continue;
                 auto fp = executableEntity(($node)od);
                 ret << imm::member(fp,od,v);
             }
@@ -657,7 +660,7 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
         for( int i = 0; i != def->supers.size(); i++ ) {
             auto sd = requestClass(def->supers[i], NormalClass);
             if( sd ) {
-                auto nv = builder.CreateStructGEP( v->asaddress(builder), i );
+                auto nv = builder.CreateStructGEP( v->asaddress(builder,*this), i );
                 auto np = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetCompositeType(sd));
                 auto sp = imm::address( nv, np, host->h );
                 select( sp, name );
@@ -666,8 +669,7 @@ imms Sengine::processMemberExpression( $ExpressionImpl impl, IRBuilder<>& builde
     };
 
     select(host, impl->mean);
-    if( ret.size() == 0 ) mlogrepo(impl->getDocPath())(Lengine::E2004,impl->mean);
-    return ret;
+    return selectResult( impl, ret, pos );
 }
 
 $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builder, Position pos ) {
@@ -682,7 +684,7 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
         performImplementationSemanticValidation(impl->sub[0],builder, AsOperand );
     if( !left or !right ) return nullptr;
 
-    if( !left->asaddress(builder) ) {
+    if( !left->asaddress(builder,*this) ) {
         mlogrepo(impl->getDocPath())(Lengine::E2053,impl->sub[0]->phrase);
         return nullptr;
     }
@@ -695,17 +697,17 @@ $imm Sengine::processAssignExpression( $ExpressionImpl impl, IRBuilder<>& builde
     
     switch( impl->mean.id ) {
         default: break;
-        case VT::ASSIGN: builder.CreateStore(right->asobject(builder),left->asaddress(builder)); break;
-        case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
-        case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder));builder.CreateStore(rv, left->asaddress(builder)); break;
+        case VT::ASSIGN: builder.CreateStore(right->asobject(builder,*this),left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_PLUS:rv = builder.CreateAdd(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MINUS:rv = builder.CreateSub(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MUL:rv = builder.CreateMul(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_DIV:rv = builder.CreateSDiv(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_MOL:rv = builder.CreateSRem(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_SHL:rv = builder.CreateShl(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_SHR:rv = builder.CreateAShr(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bAND:rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bOR:rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
+        case VT::ASSIGN_bXOR:rv = builder.CreateXor(left->asobject(builder,*this),right->asobject(builder,*this));builder.CreateStore(rv, left->asaddress(builder,*this)); break;
     }
 
     return left;
@@ -829,89 +831,36 @@ $imm Sengine::processValueExpression( $ExpressionImpl impl, IRBuilder<>& builder
 $imm Sengine::processCallExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
     if( impl->type != ExpressionImpl::CALL ) return nullptr;
 
-    imms argis;
+    env_expr.clear();
     auto err = false;
     auto ait = impl->sub.begin();
-    auto fps = (*ait)->type == ExpressionImpl::MEMBER?
-        processMemberExpression( *(ait++), builder, AsProc ):
-        processNameusageExpression( *(ait++), builder, AsProc );
 
-    while( ait != impl->sub.end() ) {
-        auto p = performImplementationSemanticValidation( *(ait++), builder, AsParam );
+    while( ++ait != impl->sub.end() ) {
+        auto p = performImplementationSemanticValidation( *ait, builder, AsParam );
         if( !p ) err = true;
-        else if( !p->eproto() ) {mlogrepo(impl->getDocPath())(Lengine::E2049,(*(ait-1))->phrase );err = true;}
+        else if( !p->eproto() ) {mlogrepo(impl->getDocPath())(Lengine::E2049,(*ait)->phrase );err = true;}
         //else args.push_back( p->asparameter(builder) );
-        argis << p;
+        env_expr << p;
     }
-    if( err ) return nullptr;
-
-    for( auto fp = fps.begin(); fp != fps.end(); fp++ ) {
-        auto mproto = (*fp)->prototype();
-        if( !mproto ) {fps.remove(fp--.pos);continue;}
-        if( mproto->size() != argis.size() ) 
-            fps.remove(fp--.pos); // [TODO]: 支持默认参数
-    }
-
-    for( int i = 0; i < argis.size(); i++ ) {
-        auto& ai = argis[i];
-        for( auto fpi = fps.begin(); fpi != fps.end(); fpi++ ) {
-            auto mproto = (*fpi)->prototype();
-            if( !insureEquivalent( (*mproto)[i]->proto, ai, Passing ) )
-                fps.remove(fpi--.pos);
-        }
-    }
-
-    $imm alleqfp = nullptr;
-    Lengine::logi* log = nullptr;
-    for( auto tfp : fps ) {
-        auto mproto = tfp->prototype();
-        bool continu = false;
-
-        auto it = argis.begin(); for( auto par : *mproto ) {
-            if( !checkEquivalent( par->proto->dtype, (*it)->eproto()->dtype ) ) continu = true;
-            it++;
-        }
-        if( continu ) continue;
-        if( alleqfp ) {
-            if( !log ) log = &mlogrepo(impl->getDocPath())(Lengine::E2050,impl->phrase)
-                (alleqfp->prototype()->getDocPath(),Lengine::E2010,alleqfp->prototype()->name);
-            (*log)(mproto->getDocPath(),Lengine::E2010,mproto->name);
-            err = true; //important
-        } else {
-            alleqfp = tfp;
-        }
-    }
+    auto fp = performImplementationSemanticValidation(impl->sub[0], builder, AsProc );
+    if( err or !fp ) return nullptr;
 
     std::vector<Value*> args;
-    if( fps.size() == 0 or err or !alleqfp and fps.size() > 1 ) {
-        if( !err ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
-        return nullptr;
-    }
-
-    auto fp = alleqfp?alleqfp:fps[0];
     auto pi = fp->prototype()->begin();
-    for( auto& ai : argis ) {
+    for( auto& ai : env_expr ) {
         ai = insureEquivalent( (*pi)->proto, ai, builder, Passing );
-        args.push_back( ai->asparameter(builder,(*pi++)->proto->elmt) );
+        args.push_back( ai->asparameter(builder,*this,(*pi++)->proto->elmt) );
     }
     
-    if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
-        args.insert(args.begin(),requestThis(($implementation)impl));
-    } else if( impl->sub[0]->type == ExpressionImpl::MEMBER ) {
-        args.insert(args.begin(),fp->h->asaddress(builder));
+    if( !fp->prototype()->meta ) {
+        if( impl->sub[0]->type == ExpressionImpl::NAMEUSAGE ) {
+            args.insert(args.begin(),requestThis(($implementation)impl));
+        } else if( impl->sub[0]->type == ExpressionImpl::MEMBER ) {
+            args.insert(args.begin(),fp->h->asaddress(builder,*this));
+        }
     }
 
-    auto rproto = fp->prototype()->rproto;
-    if( rproto->elmt == OBJ and rproto->dtype->is(typeuc::CompositeType) ) {
-        auto rv = imm::address(builder.CreateAlloca(generateTypeUsage(rproto->dtype)),rproto);
-        registerInstance( rv );
-        args.insert(args.begin(),rv->asaddress(builder));
-        builder.CreateCall(fp->asfunction(),args);
-        return rv;
-    } else {
-        return imm::object(builder.CreateCall(fp->asfunction(),args),fp->prototype()->rproto);
-    }
-
+    return generateCall( builder, fp->asfunction(), args, fp->prototype()->rproto );
 }
 
 $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& builder, Position pos ) {
@@ -953,37 +902,37 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                             return nullptr;
                         }
                         switch( impl->mean.id ) {
-                            case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder),right->asobject(builder)); break;
-                            case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); break;
-                            case VT::BITOR: rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); break;
-                            case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder),right->asobject(builder)); break;
-                            case VT::SHL: rv = builder.CreateShl(left->asobject(builder),right->asobject(builder)); break;
-                            case VT::SHR: rv = builder.CreateAShr(left->asobject(builder),right->asobject(builder)); break;
+                            case VT::MOL:   rv = builder.CreateSRem(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::BITAND:rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::BITOR: rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::BITXOR:rv = builder.CreateXor(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::SHL: rv = builder.CreateShl(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                            case VT::SHR: rv = builder.CreateAShr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
                             default: return nullptr;
                         }
                     } break;
-                    case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder),right->asobject(builder));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
-                    case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder),right->asobject(builder)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::GT: rv = builder.CreateICmpSGE(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LT: rv = builder.CreateICmpSLT(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::LE: rv = builder.CreateICmpSLT(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::GE: rv = builder.CreateICmpSGE(left->asobject(builder,*this),right->asobject(builder,*this));proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::EQ: rv = builder.CreateICmpEQ(left->asobject(builder,*this),right->asobject(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
+                    case VT::NE: rv = builder.CreateICmpNE(left->asobject(builder,*this),right->asobject(builder,*this)); proto = eproto::MakeUp(impl->getScope(),OBJ,typeuc::GetBasicDataType(VT::BOOL));break;
 
-                    case VT::AND: rv = builder.CreateAnd(left->asobject(builder),right->asobject(builder)); break;
-                    case VT::OR:  rv = builder.CreateOr(left->asobject(builder),right->asobject(builder)); break;
+                    case VT::AND: rv = builder.CreateAnd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
+                    case VT::OR:  rv = builder.CreateOr(left->asobject(builder,*this),right->asobject(builder,*this)); break;
 
                     case VT::PLUS:  rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFAdd(left->asobject(builder),right->asobject(builder)):
-                        builder.CreateAdd(left->asobject(builder),right->asobject(builder)); break;
+                        builder.CreateFAdd(left->asobject(builder,*this),right->asobject(builder,*this)):
+                        builder.CreateAdd(left->asobject(builder,*this),right->asobject(builder,*this)); break;
                     case VT::MINUS: rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFSub(left->asobject(builder),right->asobject(builder)):
-                        builder.CreateSub(left->asobject(builder),right->asobject(builder)); break;
+                        builder.CreateFSub(left->asobject(builder,*this),right->asobject(builder,*this)):
+                        builder.CreateSub(left->asobject(builder,*this),right->asobject(builder,*this)); break;
                     case VT::MUL:   rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFMul(left->asobject(builder),right->asobject(builder)):
-                        builder.CreateMul(left->asobject(builder),right->asobject(builder)); break;
+                        builder.CreateFMul(left->asobject(builder,*this),right->asobject(builder,*this)):
+                        builder.CreateMul(left->asobject(builder,*this),right->asobject(builder,*this)); break;
                     case VT::DIV:   rv = proto->dtype->is(typeuc::FloatPointType)?
-                        builder.CreateFDiv(left->asobject(builder),right->asobject(builder)):
-                        builder.CreateSDiv(left->asobject(builder),right->asobject(builder)); break;
+                        builder.CreateFDiv(left->asobject(builder,*this),right->asobject(builder,*this)):
+                        builder.CreateSDiv(left->asobject(builder,*this),right->asobject(builder,*this)); break;
                 }
                 return imm::object( rv, proto );
             }
@@ -991,14 +940,14 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
         case ExpressionImpl::SUFFIX: {
             auto operand = performImplementationSemanticValidation(impl->sub[0],builder,AsOperand);
             if( !operand ) return nullptr;
-            Value* rv = operand->asobject(builder);
+            Value* rv = operand->asobject(builder,*this);
             switch( impl->mean.id ) {
-                case VT::INCRESS: builder.CreateStore(builder.CreateAdd(rv,builder.getInt32(1)),operand->asaddress(builder));break;
-                case VT::DECRESS: builder.CreateStore(builder.CreateSub(rv,builder.getInt32(1)),operand->asaddress(builder));break;
+                case VT::INCRESS: builder.CreateStore(builder.CreateAdd(rv,builder.getInt32(1)),operand->asaddress(builder,*this));break;
+                case VT::DECRESS: builder.CreateStore(builder.CreateSub(rv,builder.getInt32(1)),operand->asaddress(builder,*this));break;
                 case VT::OPENL: {
                     auto ind = performImplementationSemanticValidation(impl->sub[1],builder,AsParam);
                     if( !ind ) return nullptr;
-                    rv = builder.CreateGEP(rv,ind->asobject(builder));
+                    rv = builder.CreateGEP(rv,ind->asobject(builder,*this));
                     rv = builder.CreateLoad(rv);
                     auto proto = operand->eproto();
                     proto->dtype = proto->dtype->sub;
@@ -1015,11 +964,10 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
             switch( impl->mean.id ) {
                 default: break;
                 case VT::BITAND: {
-                    if( right->metacls() ) return nullptr; //[TODO]: 不允许对实体取地址，报错
                     auto proto = right->eproto()->copy();
                     proto->dtype = proto->dtype->getPointerTo();
                     proto->elmt = PTR;
-                    return imm::object(right->asaddress(builder),proto);
+                    return imm::object(right->asaddress(builder,*this),proto);
                 }
                 case VT::MUL: {
                     auto proto = right->eproto()->copy();
@@ -1027,20 +975,20 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                     proto->dtype = proto->dtype->sub;
                     if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
                     if( proto->dtype->is(typeuc::CompositeType) )
-                        return imm::address(right->asobject(builder),proto);
-                    return imm::object(builder.CreateLoad(right->asobject(builder)),proto);
+                        return imm::address(right->asobject(builder,*this),proto);
+                    return imm::object(builder.CreateLoad(right->asobject(builder,*this)),proto);
                 }
                 case VT::NOT: {
                     auto proto = right->eproto();
-                    rv = builder.CreateNot(right->asobject(builder));
+                    rv = builder.CreateNot(right->asobject(builder,*this));
                     return imm::object(rv,proto);
                 }
                 case VT::INCRESS: {
-                    builder.CreateStore(builder.CreateAdd(right->asobject(builder),builder.getInt32(1)), right->asaddress(builder) );
+                    builder.CreateStore(builder.CreateAdd(right->asobject(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
                     return right;
                 }
                 case VT::DECRESS: {
-                    builder.CreateStore(builder.CreateSub(right->asobject(builder),builder.getInt32(1)), right->asaddress(builder) );
+                    builder.CreateStore(builder.CreateSub(right->asobject(builder,*this),builder.getInt32(1)), right->asaddress(builder,*this) );
                     return right;
                 }
             }
@@ -1063,6 +1011,86 @@ $imm Sengine::processConvertExpression( $ExpressionImpl impl, IRBuilder<>& build
     return doConvert( dst, value, builder );
 }
 
+$imm Sengine::selectResult( $ExpressionImpl impl, imms results, Position pos ) {
+    if( results.size() == 0 ) mlogrepo(impl->getDocPath())(Lengine::E2004,impl->mean);
+    if( pos == Position::AsProc ) {
+        for( auto fp = results.begin(); fp != results.end(); fp++ ) {
+            auto mproto = (*fp)->prototype();
+            if( !mproto ) {results.remove(fp--.pos);continue;}
+            if( mproto->size() != env_expr.size() ) 
+                results.remove(fp--.pos); // [TODO]: 支持默认参数
+        }
+
+        for( int i = 0; i < env_expr.size(); i++ ) {
+            auto& ai = env_expr[i];
+            for( auto fpi = results.begin(); fpi != results.end(); fpi++ ) {
+                auto mproto = (*fpi)->prototype();
+                if( !insureEquivalent( (*mproto)[i]->proto, ai, Passing ) )
+                    results.remove(fpi--.pos);
+            }
+        }
+
+        $imm alleqfp = nullptr;
+        Lengine::logi* log = nullptr;
+        bool err = false;
+        for( auto tfp : results ) {
+            auto mproto = tfp->prototype();
+            bool continu = false;
+
+            auto it = env_expr.begin(); for( auto par : *mproto ) {
+                if( !checkEquivalent( par->proto->dtype, (*it)->eproto()->dtype ) ) continu = true;
+                it++;
+            }
+            if( continu ) continue;
+            if( alleqfp ) {
+                if( !log ) log = &mlogrepo(impl->getDocPath())(Lengine::E2050,impl->phrase)
+                    (alleqfp->prototype()->getDocPath(),Lengine::E2010,alleqfp->prototype()->name);
+                (*log)(mproto->getDocPath(),Lengine::E2010,mproto->name);
+                err = true; //important
+            } else {
+                alleqfp = tfp;
+            }
+        }
+        if( results.size() == 0 or err or !alleqfp and results.size() > 1 ) {
+            if( !err ) mlogrepo(impl->getDocPath())(Lengine::E2051,impl->sub[0]->phrase);
+            return nullptr;
+        }
+
+        auto fp = alleqfp?alleqfp:results[0];
+    } else if( pos == Position::LeftOfAssign ) {
+        for( auto ri = results.begin(); ri != results.end(); ri++ ) {
+            auto& result = *ri;
+            if( !result->is(imm::mem) ) {results.remove(ri--.pos);continue;}
+            auto def = result->member();
+            if( def->size() != 1 ) {results.remove(ri--.pos);continue;}
+            if( !insureEquivalent((*def)[0]->proto, env_expr[0], Passing ) ) {results.remove(ri--.pos);continue;}
+        }
+        $imm alleqop = nullptr;
+        for( auto op : results )
+            if( checkEquivalent( (*op->member())[0]->proto, env_expr[0]->eproto() ) )
+                if( alleqop ) return mlogrepo(impl->getDocPath())(Lengine::E2061,impl->phrase), nullptr;
+                else alleqop = op;
+        if( alleqop ) return alleqop;
+        if( results.size() != 1 ) return mlogrepo(impl->getDocPath())(Lengine::E2061,impl->phrase), nullptr;
+        return results[0];
+    } else {
+        if( results.size() != 1 ) return mlogrepo(impl->getDocPath())(Lengine::E2061,impl->phrase),nullptr;
+        return results[0];
+    }
+}
+
+$imm Sengine::generateCall( IRBuilder<>& builder, Value* fp, vector<Value*> args, $eproto rp ) {
+    if( rp->elmt == OBJ and rp->dtype->is(typeuc::CompositeType) ) {
+        auto rv = imm::address(builder.CreateAlloca(generateTypeUsage(rp->dtype)),rp);
+        registerInstance( rv );
+        args.insert(args.begin(),rv->asaddress(builder,*this));
+        builder.CreateCall(fp,args);
+        return rv;
+    } else {
+        return imm::object(builder.CreateCall(fp,args),rp);
+    }
+}
+
 bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm::IRBuilder<>& builder ) {
     if( flag_terminate ){
         mlogrepo(impl->getDocPath())(Lengine::E2033,impl->phrase);
@@ -1077,7 +1105,7 @@ bool Sengine::performImplementationSemanticValidation( $ConstructImpl impl, llvm
         if( !impl->proto->dtype->is(typeuc::UnknownType) ) {
             inm = insureEquivalent(impl->proto,inm,builder,Constructing);
         }
-        if( inm ) inv = inm->asobject(builder);
+        if( inm ) inv = inm->asobject(builder,*this);
         else {mlogrepo(impl->getDocPath())(Lengine::E2054,impl->init->phrase);fine = false;}
     }
 
@@ -1105,7 +1133,7 @@ bool Sengine::performImplementationSemanticValidation( $BranchImpl impl, IRBuild
     bool ret = false;
     auto cond = performImplementationSemanticValidation( impl->exp, builder, AsOperand );
     if( !cond ) return false;
-    builder.CreateCondBr(cond->asobject(builder),bb2,bb3);
+    builder.CreateCondBr(cond->asobject(builder,*this),bb2,bb3);
     builder.SetInsertPoint(bb4);
 
     bd.SetInsertPoint(bb2);
@@ -1139,7 +1167,7 @@ bool Sengine::performImplementationSemanticValidation( $LoopImpl impl ,IRBuilder
     if( impl->cond ){
         auto cond = performImplementationSemanticValidation( impl->cond, bd, AsOperand );
         auto bb2 = BasicBlock::Create(mctx,"",builder.GetInsertBlock()->getParent());
-        bd.CreateCondBr(cond->asobject(builder),bb2,bb3);
+        bd.CreateCondBr(cond->asobject(builder,*this),bb2,bb3);
         bd.SetInsertPoint(bb2);
     }
 
@@ -1865,7 +1893,7 @@ $eproto Sengine::determineElementPrototype( $eproto proto ) {
 
 $imm Sengine::doConvert( $typeuc dst, $imm value, IRBuilder<>& builder ) {
     auto dstt = generateTypeUsage(dst);
-    auto val = value->asobject(builder);
+    auto val = value->asobject(builder,*this);
     auto src = value->eproto()->dtype;
 
     if( checkEquivalent(dst,src) ) return value;
@@ -1986,7 +2014,7 @@ bool Sengine::leaveScope( IRBuilder<>& builder, $implementation impl ) {
             if( proto->elmt == OBJ and proto->dtype->is(typeuc::CompositeType) ) {
                 auto op = selectOperator(inst);
                 auto opfun = executableEntity(($node)op);
-                if( opfun ) builder.CreateCall( opfun, {inst->asaddress(builder)} );
+                if( opfun ) builder.CreateCall( opfun, {inst->asaddress(builder,*this)} );
                 else found = false;
             }
         }
