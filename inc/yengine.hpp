@@ -325,6 +325,21 @@ class Yengine {
          * @return nameuc : 名称用例
          */
         nameuc constructNameUseCase( tokens::iterator& it, Lengine::logs& log, $scope sc, bool absorb );
+
+        /**
+         * @method printSyntaxStructure : 打印语法结构
+         * @desc :
+         *  将语法结构打印成为Json结构。
+         */
+        Jsonz printSyntaxStructure( anything );
+
+        /**
+         * @method readSyntaxStructure : 读取语法结构
+         * @desc :
+         *  从Json结构中读取语法结构
+         */
+        anything readSyntaxStructure( Jsonz json );
+
         
         int prio(const token& it)const;
 };
