@@ -12,7 +12,7 @@ Jsonz Yengine::printSyntaxStructure( anything node ) {
         json["syntax"] = "nameuc";
         json["content"] = Jsonz(JArray);
         for( auto& atom : structure->msequence ) {
-            json["content"].insert(printSyntaxStructure((anything)&atom), -1 );
+            json["content"].insert(printSyntaxStructure((thing*)&atom), -1 );
         }
 
     } else if( auto structure = (agent<nameuc::atom>)node; structure ) {

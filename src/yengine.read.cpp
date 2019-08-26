@@ -6,7 +6,7 @@
 namespace alioth {
 
 anything Yengine::readSyntaxStructure( Jsonz node ) {
-
+    return nullptr;
 }
 
 }

@@ -6,7 +6,15 @@
 > Offical dev repository on personal server : http://dn-ezr.cn:3000/dn-ezr/alioth-dev  
 > And the repository of the original project : http://dn-ezr.cn:3000/dn-ezr/alioth
 
-Most of the documents are written in Chinese currently, here's our apologies for your might existing trouble in reading them, the version in English coming soon.
+Note, this repository will no longer update, because the development progress was moved to a new repository, which link as follow:
+
+https://github.com/dn-ezr/alioth-compiler
+
+I opened a brand new repository to store documentation for the Alioth programming language only :
+
+https://github.com/dn-ezr/alioth-lang
+
+I apologize to the friends who are passionate about participating in this project. I hope that my stupid move will not dispel your enthusiasm.
 
 ![](doc/assets/i/icon_with_A.png)
 
@@ -43,7 +51,7 @@ Alioth编译器尚在开发阶段,如下提及的语法特性还没有完全得�
         sudo make install
         ~~~
 
-    2. 安装其他构建工具
+    1. 安装其他构建工具
 
         ~~~bash
         #!/bin/bash

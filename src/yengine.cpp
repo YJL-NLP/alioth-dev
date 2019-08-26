@@ -456,7 +456,7 @@ $ConstructImpl Yengine::constructParameterDefinition( tokens::iterator& it, Leng
                 log(Lengine::E6,*it);
                 return nullptr;
             } break;
-            //[TODO]: 默认参数解析
+            #warning [TODO]: 默认参数解析
     }
 
     def->phrase = *it;
@@ -615,8 +615,8 @@ $ModuleGranule Yengine::constructSyntaxTree( tokens& is, Lengine::logs& log ) {
 
     /**
      * 剔除注释和空白
-     * [TODO]: 将注释留给需要调试信息的地方,将注释和源码加入调试信息
      */
+    #warning [TODO]: 将注释留给需要调试信息的地方,将注释和源码加入调试信息
     for( auto i = is.begin(); i != is.end(); ) 
         if( i->is(VT::COMMENT,VT::SPACE) ) is.remover(*i);
         else i += 1;
@@ -675,8 +675,8 @@ $ModuleSignature Yengine::detectModuleSignature( tokens& is, Lengine::logs& log 
 
     /**
      * 剔除注释和空白
-     * [TODO]: 将注释留给需要调试信息的地方,将注释和源码加入调试信息
      */
+     #warning [TODO]: 将注释留给需要调试信息的地方,将注释和源码加入调试信息
     for( auto i = is.begin(); i != is.end(); ) 
         if( i->is(VT::COMMENT,VT::SPACE) ) is.remover(*i);
         else i += 1;
@@ -1441,7 +1441,8 @@ $InsBlockImpl Yengine::constructInstructionBlockImplementation( tokens::iterator
                 if( loop ) ref->impls << ($implementation) loop;
                 else return nullptr;
             } else if( it->is(VT::SWITCH) ) {
-                stack.stay();   //[TODO]
+                stack.stay();   
+                #warning [TODO]
             } else if( it->is(VT::IF) ) {
                 auto br = constructBranchImplementation(it,log,ref);
                 if( br ) ref->impls << ($implementation) br;
@@ -1551,7 +1552,8 @@ $ConstructorImpl Yengine::constructConstructorImplementation( tokens::iterator& 
                 if( loop ) ret->initiate << ($implementation) loop;
                 else return nullptr;
             } else if( it->is(VT::SWITCH) ) {
-                stack.stay();   //[TODO]
+                stack.stay();   
+                #warning [TODO]
             } else if( it->is(VT::IF) ) {
                 auto br = constructBranchImplementation(it,log,ret);
                 if( br ) ret->initiate << ($implementation) br;
@@ -1630,7 +1632,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
             if( it->is(VT::CLOSEA) ) {
                 stack.redu(2,VN::EXPRESSION);
             } else {
-                //[TODO]: 报错 ')' missing
+                #warning [TODO]: 报错 ')' missing
                 log(Lengine::E202,")",*it);
                 return nullptr;
             } break;
@@ -1646,7 +1648,7 @@ $ExpressionImpl Yengine::constructExpressionImplementation( tokens::iterator& it
                 stack.redu(1,VN::EXPRESSION);
             } else if( it->is(VT::TREAT) ) {
                 return nullptr;
-                //[TODO]: 分析类型转换
+                #warning [TODO]: 分析类型转换
             } else if( it->is(VT::OPENL) ) {
                 $ExpressionImpl nr = new ExpressionImpl;
                 nr->type = ExpressionImpl::SUFFIX;
@@ -1887,7 +1889,8 @@ $FlowCtrlImpl Yengine::constructFlowControlImplementation( tokens::iterator& it,
 
     while( stack.size() > 0 ) switch( (state)stack ) {
         case 1 :
-            return nullptr; //][TODO]
+            return nullptr; 
+            #warning [TODO]
         case 2 :
             if( it->is(VT::SEMI,VT::CLOSES) ) {
                 stack.redu(-1,VN::CONTROL);
@@ -2305,7 +2308,8 @@ $LoopImpl Yengine::constructLoopimplementation( tokens::iterator& it, Lengine::l
 }
 
 int Yengine::prio(const token& it)const {
-    int p = 0;  //[TODO]添加了好多运算符,这个方法待更新
+    int p = 0;  
+    #warning [TODO]添加了好多运算符,这个方法待更新
 
 
     /**

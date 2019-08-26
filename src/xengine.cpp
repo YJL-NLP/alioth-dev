@@ -633,7 +633,8 @@ std::string Xengine::extractText( const token& t ) {
 
 
 int Xengine::priority( const token& t ) {
-    int p = 0;  //[TODO]添加了好多运算符,这个方法待更新
+    int p = 0;  
+    #warning [TODO]添加了好多运算符,这个方法待更新
 
     /**
      * 所有运算符

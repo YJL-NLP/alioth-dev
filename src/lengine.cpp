@@ -38,7 +38,7 @@ bool Lengine::config( const Jsonz& conf ) {
                 };
 
                 if( tmpl.test<JArray>("sub") ) tmpl.at("sub").foreach([&](const Jsonz& sub ) -> bool {
-                    //[TODO]:安全性的检查
+                    #warning [TODO]:安全性的检查
                     tm.sub.construct(-1);
                     tm.sub[-1].tno = (int)sub.at(0);
                     tm.sub[-1].pat = (int)sub.at(1);

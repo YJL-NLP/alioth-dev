@@ -267,14 +267,14 @@ bool Sengine::performDefinitionSemanticValidation( $OperatorDef opdef ) {
                 not ((proto->elmt == REF and (bool)proto->cons) or (proto->elmt == REL and !(bool)proto->cons) )
             ) {mlogrepo(opdef->getDocPath())(Lengine::E2043,(*opdef)[0]->phrase,opdef->name);fine = false;}
             if( !fine ) return false;
-            //[TODO]: 产生默认运算符体
+            #warning [TODO]: 产生默认运算符体
             return true;
         } else {
             return false;
         }
     }
 
-    //[TODO]: 检查其他细节。
+    #warning [TODO]: 检查其他细节。
     if( opdef->rproto and !determineElementPrototype(opdef->rproto) ) fine = false;
     for( auto par : *opdef ) if( !determineElementPrototype(par->proto) ) fine = false;
      
@@ -506,11 +506,11 @@ bool Sengine::performImplementationSemanticValidation( $ConstructorImpl impl, IR
     }
     bool ret = true;
 
-    //[TODO]: 按照构造顺序建立构造名录名录
+    #warning [TODO]: 按照构造顺序建立构造名录名录
 
-    //[TODO]: 按照构造名单填充构造表达式，报重复错误
+    #warning [TODO]: 按照构造名单填充构造表达式，报重复错误
 
-    //[TODO]: 执行构造
+    #warning [TODO]: 执行构造
 
     for( auto imp : impl->initiate )
         ret = performImplementationSemanticValidation( imp, builder ) and ret;
@@ -531,7 +531,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
         case RETURN: {
             if( impl->expr ) {
                 auto v = performImplementationSemanticValidation( impl->expr, builder, AsRetVal ); if( !v ) return false;
-                //[TODO] : generateBackendIR for <leave> method
+                #warning [TODO] : generateBackendIR for <leave> method
 
                 if( auto rv = insureEquivalent(rproto, v, builder, Returning ); rv ) {
                     builder.CreateRet(rv->asunit(builder,*this));
@@ -548,7 +548,7 @@ bool Sengine::performImplementationSemanticValidation( $FlowCtrlImpl impl, llvm:
             }
             return true;
         } break;
-        //[TODO] : case BREAK: generateBackendIR for <leave> block
+        #warning [TODO] : case BREAK: generateBackendIR for <leave> block
         default:
             return true;
     }
@@ -971,7 +971,8 @@ $imm Sengine::processCalcExpression( $ExpressionImpl impl, llvm::IRBuilder<>& bu
                 }
                 case VT::MUL: {
                     auto proto = right->eproto()->copy();
-                    if( !proto->dtype->is(typeuc::PointerType) ) return nullptr; //[TODO]: 报错
+                    if( !proto->dtype->is(typeuc::PointerType) ) return nullptr; 
+                    #warning [TODO]: 报错
                     proto->dtype = proto->dtype->sub;
                     if( !proto->dtype->is(typeuc::PointerType) ) proto->elmt = OBJ;
                     if( proto->dtype->is(typeuc::CompositeType) )
@@ -1018,7 +1019,8 @@ $imm Sengine::selectResult( $ExpressionImpl impl, imms results, Position pos ) {
             auto mproto = (*fp)->prototype();
             if( !mproto ) {results.remove(fp--.pos);continue;}
             if( mproto->size() != env_expr.size() ) 
-                results.remove(fp--.pos); // [TODO]: 支持默认参数
+                results.remove(fp--.pos); 
+                #warning [TODO]: 支持默认参数
         }
 
         for( int i = 0; i < env_expr.size(); i++ ) {
@@ -1433,7 +1435,7 @@ tuple<$imm,$OperatorDef,$imm> Sengine::selectOperator( $imm left, token op, $imm
 
     if( auto lc = ($ClassDef)lp->dtype->sub; lc ) {
         for( auto d : lc->instdefs ) if( auto od = ($OperatorDef)d; od and od->name.in == op.in ) {
-            // [TODO]: 考虑const
+            #warning [TODO]: 考虑const
             if( !insureEquivalent((*od->begin())->proto, right, Situation::Passing ) ) continue;
             return {left,od,right};
         }
@@ -1441,7 +1443,7 @@ tuple<$imm,$OperatorDef,$imm> Sengine::selectOperator( $imm left, token op, $imm
 
     if( auto rc = ($ClassDef)rp->dtype->sub; rc ) {
         for( auto d : rc->instdefs ) if( auto od = ($OperatorDef)d; od and od->name.in == op.in and od->modifier.is(CT::MF_REV) ) {
-            // [TODO]: 考虑const
+            #warning [TODO]: 考虑const
             if( !insureEquivalent((*od->begin())->proto, left, Situation::Passing ) ) continue;
             return {right,od,left};
         }
@@ -1510,12 +1512,12 @@ $OperatorDef Sengine::selectOperator( $typeuc type, bundles od ) {
             sctor << od;
     if( sctor.size() == 0 ) return nullptr;
 
-    //[TODO]: 考虑模板类
+    #warning [TODO]: 考虑模板类
     if( od.size() == 0 ) {
         for( auto od : sctor ) if( od->size() == 0 ) return od;
         return nullptr;
     } else for( auto ctor : sctor ) {
-        //[TODO]
+        #warning [TODO]
     }
 
     return nullptr;
@@ -1784,7 +1786,7 @@ bool Sengine::insureEquivalent( $eproto dproto, $imm src, Situation s ) {
             } else if( sproto->dtype->is(typeuc::NullPointerType) and dproto->dtype->is(typeuc::PointerType) ) {
                 return true;
             } else {
-                //[TODO]: 复合数据类型的转换
+                #warning [TODO]: 复合数据类型的转换
             }
             break;
         case Situation::Returning:
@@ -1917,7 +1919,7 @@ $imm Sengine::doConvert( $typeuc dst, $imm value, IRBuilder<>& builder ) {
         else if( dst->is(typeuc::UnsignedIntegerType) ) return imm::instance(builder.CreateFPToUI(val,dstt), droto->copy() );
         else if( dst->is(typeuc::FloatPointType) ) return imm::instance(builder.CreateFPCast(val,dstt), droto->copy() );
     } else if( src->is(typeuc::CompositeType) ) {
-        //[TODO]: 完成复合数据类型的类型转换
+        #warning [TODO]: 完成复合数据类型的类型转换
     }
 
     return nullptr;
@@ -2000,7 +2002,7 @@ bool Sengine::enterScope( $implementation impl ) {
 }
 
 bool Sengine::leaveScope( IRBuilder<>& builder, $implementation impl ) {
-    // [TODO]
+    #warning [TODO]
     if( mstackS.size() == 0 ) return false;
     if( !impl ) impl = mstackS[0].title;
 
